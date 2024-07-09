@@ -10,15 +10,31 @@ const openai = new OpenAI({
   }
 });
 
+
+// Function to get the appropriate API key based on the model
+function getApiKey(model) {
+  switch (model) {
+    case 'FREE_MODEL':
+      return process.env.FREE_MODEL;
+    case 'PRO_MODEL':
+      return process.env.PRO_MODEL;
+    case 'ADVANCED_MODEL':
+      return process.env.ADVANCED_MODEL;
+    default:
+      return "meta-llama/llama-3-8b-instruct:free"; // Fallback to a default key if needed
+  }
+}
+
 export async function POST(request) {
   try {
-    const { prompt, html } = await request.json();
+    const { prompt, html, model } = await request.json();
     if (!prompt || !html) {
       return NextResponse.json({ error: 'Prompt and HTML are required' }, { status: 400 });
     }
-
+    const model_name = getApiKey(model);
+    console.log('Using model:', model_name);
     const completion = await openai.chat.completions.create({
-      model: "meta-llama/llama-3-8b-instruct:free",
+      model: model_name,
       messages: [
         {
           role: "system",

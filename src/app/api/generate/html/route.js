@@ -10,15 +10,33 @@ const openai = new OpenAI({
   }
 });
 
+
+// Function to get the appropriate API key based on the model
+function getApiKey(model) {
+  switch (model) {
+    case 'FREE_MODEL':
+      return process.env.FREE_MODEL;
+    case 'PRO_MODEL':
+      return process.env.PRO_MODEL;
+    case 'ADVANCED_MODEL':
+      return process.env.ADVANCED_MODEL;
+    default:
+      return "meta-llama/llama-3-8b-instruct:free"; // Fallback to a default key if needed
+  }
+}
+
+
 export async function POST(request) {
   try {
-    const { prompt } = await request.json();
+    const { prompt, model } = await request.json();
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
-
+    
+    const model_name = getApiKey(model);
+    console.log('Using model:', model_name);
     const completion = await openai.chat.completions.create({
-      model: "meta-llama/llama-3-8b-instruct:free",
+      model: model_name,
       messages: [
         {
           role: "system",
@@ -42,7 +60,7 @@ export async function POST(request) {
     });
 
     let generatedContent = completion.choices[0].message.content;
-   
+    console.log('Generated content:', generatedContent);
     // Remove any script tags if they still appear in the generated HTML
     generatedContent = generatedContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 
