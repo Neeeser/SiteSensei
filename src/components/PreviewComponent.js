@@ -10,7 +10,7 @@ const PreviewComponent = ({ html, javascript, inputMethod }) => {
         border: '1px solid #ccc', 
         borderRadius: '4px', 
         padding: '20px', 
-        height: '30vh',
+        height: '50vh',
         overflow: 'hidden',
         pointerEvents: 'none'  // This prevents interaction with the preview
       }}>
