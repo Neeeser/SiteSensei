@@ -26,17 +26,15 @@ export default function TestPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage('');  // Clear any previous messages
-    
+    setMessage('');
+
     try {
       let finalPrompt = promptContent;
       
       if (enhancePrompt) {
         const enhanceResponse = await fetch('/api/enhancePrompt', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: promptContent }),
         });
         const enhanceData = await enhanceResponse.json();
@@ -46,25 +44,19 @@ export default function TestPage() {
         }
       }
   
-      // Generate HTML
       const htmlResponse = await fetch('/api/generate/html', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: finalPrompt, model: selectedModel}),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: finalPrompt, model: selectedModel }),
       });
       const htmlData = await htmlResponse.json();
       
       if (htmlData.html) {
         setHtmlContent(htmlData.html);
 
-        // Generate JavaScript based on the HTML
         const jsResponse = await fetch('/api/generate/javascript', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: finalPrompt, html: htmlData.html, model: selectedModel }),
         });
         const jsData = await jsResponse.json();
@@ -73,12 +65,9 @@ export default function TestPage() {
           setJsContent(jsData.javascript);
           setMessage('Content generated successfully');
           
-          // Store the generated content in the database
           const storeResponse = await fetch('/api/update-content', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               page: pageName,
               html: htmlData.html,
@@ -104,97 +93,91 @@ export default function TestPage() {
   };
 
   return (
-    <div className="test-page-container">
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px', display: 'flex', flexDirection: isSmallScreen ? 'column' : 'row', gap: '20px' }}>
-        <div style={{ flex: 1 }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>Dynamic Content Test Page</h1>
-          <div style={{ border: '1px solid #ccc', borderRadius: '4px', padding: '20px', marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '20px', marginBottom: '15px' }}>Generate Dynamic Content</h2>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+    <div className="container mx-auto px-4 py-8">
+      <div className={`max-w-6xl mx-auto ${isSmallScreen ? 'flex flex-col' : 'flex flex-row'} gap-8`}>
+        <div className="flex-1">
+          <h1 className="text-shadow">Dynamic Content Test Page</h1>
+          <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+            <h2>Generate Dynamic Content</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="pageName" style={{ display: 'block', marginBottom: '5px' }}>Page Name:</label>
+                <label htmlFor="pageName" className="block text-text-dark mb-2">Page Name:</label>
                 <input
                   id="pageName"
                   type="text"
                   value={pageName}
                   onChange={(e) => setPageName(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '5px' }}>Select Model:</label>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <label className="block text-text-dark mb-2">Select Model:</label>
+                <div className="flex gap-4">
                   {['FREE_MODEL', 'PRO_MODEL', 'ADVANCED_MODEL'].map((model) => (
-                    <label key={model} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <label key={model} className="flex items-center">
                       <input
                         type="radio"
                         name="model"
                         value={model}
                         checked={selectedModel === model}
                         onChange={(e) => setSelectedModel(e.target.value)}
+                        className="mr-2"
                       />
-                      {model.split('_')[0].toLowerCase()}
+                      <span className="text-text-light">{model.split('_')[0].toLowerCase()}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <label htmlFor="promptContent" style={{ display: 'block', marginBottom: '5px' }}>Prompt for Content Generation:</label>
+                <label htmlFor="promptContent" className="block text-text-dark mb-2">Prompt for Content Generation:</label>
                 <textarea
                   id="promptContent"
                   value={promptContent}
                   onChange={(e) => setPromptContent(e.target.value)}
                   rows={5}
                   required
-                  style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Describe the content you want to generate..."
                 />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="flex items-center">
                 <input
                   type="checkbox"
                   id="enhancePrompt"
                   checked={enhancePrompt}
                   onChange={(e) => setEnhancePrompt(e.target.checked)}
+                  className="mr-2"
                 />
-                <label htmlFor="enhancePrompt">Enhance prompt before generation</label>
+                <label htmlFor="enhancePrompt" className="text-text-light">Enhance prompt before generation</label>
               </div>
               
               <button 
                 type="submit" 
-                style={{ 
-                  padding: '10px 15px', 
-                  backgroundColor: '#0070f3', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '4px', 
-                  cursor: 'pointer',
-                  opacity: isLoading ? 0.7 : 1,
-                }}
+                className={`btn btn-primary ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                 disabled={isLoading}
               >
                 {isLoading ? 'Generating...' : 'Generate Content'}
               </button>
             </form>
-            {message && <p style={{ marginTop: '15px', color: '#00a86b' }}>{message}</p>}
+            {message && <p className="mt-4 text-green-600">{message}</p>}
           </div>
-          <div style={{ marginTop: '20px' }}>
-            <h2 style={{ fontSize: '20px', marginBottom: '10px' }}>View Created Page</h2>
-            <p>
-              To view your created page, go to: <code style={{ backgroundColor: '#f0f0f0', padding: '2px 4px', borderRadius: '4px' }}>/[page-name]</code>
+          <div>
+            <h2>View Created Page</h2>
+            <p className="text-text-light mb-2">
+              To view your created page, go to: <code className="bg-gray-100 px-2 py-1 rounded">/[page-name]</code>
             </p>
             {pageName && (
-              <p style={{ marginTop: '10px' }}>
+              <p>
                 Your page will be available at:{' '}
-                <a href={`/${pageName}`} target="_blank" rel="noopener noreferrer" style={{ color: '#0070f3', textDecoration: 'underline' }}>
+                <a href={`/${pageName}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-blue-800">
                   /{pageName}
                 </a>
               </p>
             )}
           </div>
         </div>
-        <div style={{ flex: 1 }}>
+        <div className="flex-1">
           <PreviewComponent 
             html={htmlContent}
             javascript={jsContent}
