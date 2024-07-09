@@ -30,7 +30,7 @@ const WelcomePageContent = () => {
           className="bg-white rounded-lg p-8 shadow-md text-text-dark max-w-md mx-auto border border-gray-200"
         >
           <h2 className="text-2xl font-serif mb-4">Begin Your Journey</h2>
-          <p className="mb-6 text-text-light">Transform your Web App Idea's into Reality</p>
+          <p className="mb-6 text-text-light">Transform your Web App Idea&apos;s into Reality</p>
           <Link href="/api/auth/login" passHref legacyBehavior>
             <motion.a
               whileHover={{ scale: 1.05 }}
