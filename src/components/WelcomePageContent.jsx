@@ -1,9 +1,8 @@
 'use client';
-
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Flower2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const WelcomePageContent = () => {
   return (
@@ -19,7 +18,20 @@ const WelcomePageContent = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.8 }}
         >
-          <Flower2 className="w-16 h-16 mx-auto mb-6 text-secondary" />
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="w-16 h-16 mx-auto mb-6"
+          >
+            <Image
+              src="/logo.png"
+              alt="Site Sensei Logo"
+              width={128}
+              height={128}
+              className="w-full h-full object-contain"
+            />
+          </motion.div>
           <h1 className="text-4xl md:text-5xl font-serif mb-4 text-text-dark text-shadow">Site Sensei</h1>
           <p className="text-xl mb-8 text-text-light font-light">Generate interactive code for your website quickly</p>
         </motion.div>

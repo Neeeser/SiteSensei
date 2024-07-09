@@ -1,9 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import PreviewComponent from '../../components/PreviewComponent';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 export default function TestPage() {
-  const [pageName, setPageName] = useState('dynamic-content');
+  const { user, isLoading: userLoading } = useUser();
+  const [pageName, setPageName] = useState('');
   const [htmlContent, setHtmlContent] = useState("");
   const [jsContent, setJsContent] = useState("");
   const [promptContent, setPromptContent] = useState("");
@@ -12,6 +14,32 @@ export default function TestPage() {
   const [enhancePrompt, setEnhancePrompt] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('FREE_MODEL');
+  const [userRole, setUserRole] = useState('free');
+  const [isPageGenerated, setIsPageGenerated] = useState(false);
+
+  // New state to track form validity
+  const [isFormValid, setIsFormValid] = useState(false);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        try {
+          const response = await fetch('/api/getUserRole');
+          const data = await response.json();
+          setUserRole(data.role);
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
+
+  useEffect(() => {
+    // Check if both pageName and promptContent are filled
+    setIsFormValid(pageName.trim() !== '' && promptContent.trim() !== '');
+  }, [pageName, promptContent]);
 
   const handleResize = () => {
     setIsSmallScreen(window.innerWidth < 800);
@@ -23,10 +51,17 @@ export default function TestPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const handlePageNameChange = (e) => {
+    const value = e.target.value.replace(/[^a-z0-9-]/gi, '').toLowerCase();
+    setPageName(value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isFormValid) return;
     setIsLoading(true);
     setMessage('');
+    setIsPageGenerated(false);
 
     try {
       let finalPrompt = promptContent;
@@ -78,6 +113,7 @@ export default function TestPage() {
           if (storeData.message) {
             setMessage(prevMessage => `${prevMessage}. ${storeData.message}`);
           }
+          setIsPageGenerated(true);
         } else if (jsData.error) {
           throw new Error(jsData.error);
         }
@@ -90,6 +126,11 @@ export default function TestPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const canUseModel = (model) => {
+    if (model === 'FREE_MODEL') return true;
+    return userRole === 'admin' || userRole === 'paid';
   };
 
   return (
@@ -106,22 +147,26 @@ export default function TestPage() {
                   id="pageName"
                   type="text"
                   value={pageName}
-                  onChange={(e) => setPageName(e.target.value)}
+                  onChange={handlePageNameChange}
                   required
                   className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Enter URL-compliant page name (a-z, 0-9, -)"
+                  pattern="^[a-z0-9-]+$"
+                  title="Only lowercase letters, numbers, and hyphens are allowed"
                 />
               </div>
               <div>
                 <label className="block text-text-dark mb-2">Select Model:</label>
                 <div className="flex gap-4">
                   {['FREE_MODEL', 'PRO_MODEL', 'ADVANCED_MODEL'].map((model) => (
-                    <label key={model} className="flex items-center">
+                    <label key={model} className={`flex items-center ${!canUseModel(model) ? 'opacity-50' : ''}`}>
                       <input
                         type="radio"
                         name="model"
                         value={model}
                         checked={selectedModel === model}
                         onChange={(e) => setSelectedModel(e.target.value)}
+                        disabled={!canUseModel(model)}
                         className="mr-2"
                       />
                       <span className="text-text-light">{model.split('_')[0].toLowerCase()}</span>
@@ -154,28 +199,28 @@ export default function TestPage() {
               
               <button 
                 type="submit" 
-                className={`btn btn-primary ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                disabled={isLoading}
+                className={`btn btn-primary ${(!isFormValid || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!isFormValid || isLoading}
               >
                 {isLoading ? 'Generating...' : 'Generate Content'}
               </button>
             </form>
             {message && <p className="mt-4 text-green-600">{message}</p>}
           </div>
-          <div>
-            <h2>View Created Page</h2>
-            <p className="text-text-light mb-2">
-              To view your created page, go to: <code className="bg-gray-100 px-2 py-1 rounded">/[page-name]</code>
-            </p>
-            {pageName && (
+          {isPageGenerated && (
+            <div>
+              <h2>View Created Page</h2>
+              <p className="text-text-light mb-2">
+                To view your created page, go to: <code className="bg-gray-100 px-2 py-1 rounded">/[page-name]</code>
+              </p>
               <p>
-                Your page will be available at:{' '}
+                Your page is now available at:{' '}
                 <a href={`/${pageName}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-blue-800">
                   /{pageName}
                 </a>
               </p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         <div className="flex-1">
           <PreviewComponent 

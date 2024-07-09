@@ -84,7 +84,7 @@ export default function DynamicPage({ params }) {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
-        <p>Generating content...</p>
+        <p>Loading content...</p>
       </div>
     );
   }

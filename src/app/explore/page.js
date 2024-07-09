@@ -1,8 +1,7 @@
-// src/app/explore/page.js
 'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { supabase } from '../../utils/supabase';
 import PreviewComponent from '../../components/PreviewComponent';
 import InfiniteScroll from 'react-infinite-scroll-component';
@@ -17,7 +16,6 @@ export default function ExplorePage() {
   const fetchPages = async () => {
     const from = lastLoadedPage.current;
     const to = from + pageSize - 1;
-
     const { data, error } = await supabase
       .from('pages')
       .select('*')
@@ -29,9 +27,6 @@ export default function ExplorePage() {
       return;
     }
 
-    console.log('Fetched data:', data); // Debugging: Log fetched data
-
-    // Filter out duplicates based on page name
     const uniqueData = data.filter(page => {
       if (!loadedPageNames.current.has(page.name)) {
         loadedPageNames.current.add(page.name);
@@ -40,14 +35,12 @@ export default function ExplorePage() {
       return false;
     });
 
-    console.log('Unique data:', uniqueData); // Debugging: Log unique data
-
     if (uniqueData.length < pageSize) {
       setHasMore(false);
     }
 
     setPages(prevPages => [...prevPages, ...uniqueData]);
-    lastLoadedPage.current += data.length; // We still need to update this based on the original data length
+    lastLoadedPage.current += data.length;
   };
 
   useEffect(() => {
@@ -55,39 +48,64 @@ export default function ExplorePage() {
   }, []);
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
-      <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '20px' }}>Explore</h1>
-      <div style={{ display: 'flex', marginBottom: '20px' }}>
-        <button style={{ marginRight: '10px', padding: '5px 10px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '4px' }}>New Generations</button>
-        <button style={{ padding: '5px 10px', backgroundColor: '#fff', color: '#000', border: '1px solid #000', borderRadius: '4px' }}>Featured</button>
-      </div>
-      <InfiniteScroll
-        dataLength={pages.length}
-        next={fetchPages}
-        hasMore={hasMore}
-        loader={<h4>Loading...</h4>}
-        style={{ overflow: 'hidden' }}
+    <div className="min-h-full bg-background text-text-light p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        className="w-full max-w-6xl mx-auto"
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
-          {pages.map(page => (
-            <Link href={`/${page.name}`} key={page.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div style={{ border: '1px solid #ccc', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s', ':hover': { transform: 'scale(1.05)' } }}>
-                <div style={{ height: '150px', overflow: 'hidden' }}>
-                  <PreviewComponent
-                    html={page.html}
-                    javascript={page.javascript}
-                    inputMethod="separate"
-                  />
-                </div>
-                <div style={{ padding: '10px' }}>
-                  <p style={{ fontSize: '14px', color: '#666' }}>{new Date(page.created_at).toLocaleString()}</p>
-                  <h3 style={{ fontSize: '18px', marginTop: '5px' }}>{page.name}</h3>
-                </div>
-              </div>
-            </Link>
-          ))}
+        <h1 className="text-4xl md:text-5xl font-serif mb-8 text-text-dark text-shadow">Explore</h1>
+       
+        <div className="flex mb-8 space-x-4">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="btn btn-primary"
+          >
+            New Generations
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="btn bg-white text-text-dark border border-gray-300"
+          >
+            Featured
+          </motion.button>
         </div>
-      </InfiniteScroll>
+
+        <InfiniteScroll
+          dataLength={pages.length}
+          next={fetchPages}
+          hasMore={hasMore}
+          loader={<div className="loading-container"><div className="loading-spinner"></div></div>}
+          className="w-full" // Remove overflow-hidden here
+          style={{ overflow: 'visible' }} // Add this line to remove the scrollbar
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {pages.map(page => (
+              <Link href={`/${page.name}`} key={page.id} className="no-underline text-inherit">
+                <motion.div
+                  whileHover={{ scale: 1.03 }}
+                  className="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300"
+                >
+                  <div className="h-40 overflow-hidden">
+                    <PreviewComponent
+                      html={page.html}
+                      javascript={page.javascript}
+                      inputMethod="separate"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm text-text-light mb-2">{new Date(page.created_at).toLocaleDateString()}</p>
+                    <h3 className="text-xl font-semibold text-text-dark">{page.name}</h3>
+                  </div>
+                </motion.div>
+              </Link>
+            ))}
+          </div>
+        </InfiniteScroll>
+      </motion.div>
     </div>
   );
 }

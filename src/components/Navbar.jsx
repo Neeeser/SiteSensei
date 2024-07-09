@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { Menu, X, User, Flower2 } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,9 +20,13 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0">
-              <Flower2 className="h-8 w-8 text-secondary" />
-            </Link>
+          <Image
+              src="/logo.png"
+              alt="Site Sensei Logo"
+              width={32}
+              height={32}
+              className="w-full h-full object-contain"
+            />
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">
                 <Link href="/" className="text-text-light hover:text-text-dark px-3 py-2 rounded-md text-sm font-medium">Home</Link>
