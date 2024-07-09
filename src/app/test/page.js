@@ -1,6 +1,9 @@
+//src/app/test/page.js
 'use client';
 import React, { useState } from 'react';
 import DynamicContent from '../../components/DynamicContent';
+import PreviewComponent from '../../components/PreviewComponent';
+
 
 export default function TestPage() {
   const [pageName, setPageName] = useState('dynamic-content');
@@ -36,24 +39,57 @@ export default function TestPage() {
           setPromptContent(finalPrompt);
         }
       }
-
-      let response;
+  
       if (inputMethod === 'generate') {
-        response = await fetch('/api/generate-content', {
+        // Generate HTML
+        const htmlResponse = await fetch('/api/generate/html', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ prompt: finalPrompt, pageName }),
+          body: JSON.stringify({ prompt: finalPrompt }),
         });
-        const data = await response.json();
-        if (data.html && data.javascript) {
-          setHtmlContent(data.html);
-          setJsContent(data.javascript);
-          setCombinedContent(data.html);
-          setMessage(data.message || 'Content generated successfully');
-        } else if (data.error) {
-          throw new Error(data.error);
+        const htmlData = await htmlResponse.json();
+        
+        if (htmlData.html) {
+          setHtmlContent(htmlData.html);
+          setCombinedContent(htmlData.html);
+  
+          // Generate JavaScript based on the HTML
+          const jsResponse = await fetch('/api/generate/javascript', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt: finalPrompt, html: htmlData.html }),
+          });
+          const jsData = await jsResponse.json();
+  
+          if (jsData.javascript) {
+            setJsContent(jsData.javascript);
+            setMessage('Content generated successfully');
+            
+            // Store the generated content in the database
+            const storeResponse = await fetch('/api/update-content', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                page: pageName,
+                html: htmlData.html,
+                javascript: jsData.javascript
+              }),
+            });
+            const storeData = await storeResponse.json();
+            if (storeData.message) {
+              setMessage(prevMessage => `${prevMessage}. ${storeData.message}`);
+            }
+          } else if (jsData.error) {
+            throw new Error(jsData.error);
+          }
+        } else if (htmlData.error) {
+          throw new Error(htmlData.error);
         }
       } else {
         response = await fetch('/api/update-content', {
@@ -190,15 +226,11 @@ export default function TestPage() {
         </form>
         {message && <p style={{ marginTop: '15px', color: '#00a86b' }}>{message}</p>}
       </div>
-      <div>
-        <h2 style={{ fontSize: '20px', marginBottom: '10px' }}>Preview</h2>
-        <div style={{ border: '1px solid #ccc', borderRadius: '4px', padding: '20px', height: '30vh' }}>
-          <DynamicContent 
-            html={inputMethod === 'separate' ? htmlContent : combinedContent}
-            javascript={inputMethod === 'separate' ? jsContent : undefined}
-          />
-        </div>
-      </div>
+      <PreviewComponent 
+        html={inputMethod === 'separate' ? htmlContent : combinedContent}
+        javascript={inputMethod === 'separate' ? jsContent : undefined}
+        inputMethod={inputMethod}
+      />
       <div style={{ marginTop: '20px' }}>
         <h2 style={{ fontSize: '20px', marginBottom: '10px' }}>View Created Page</h2>
         <p>

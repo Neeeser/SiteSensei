@@ -42,8 +42,8 @@ export async function POST(request) {
           content: prompt
         }
       ],
-      max_tokens: 2000,
-      temperature: 0.7,
+
+      temperature: 0.3,
     });
 
     const generatedContent = completion.choices[0].message.content;

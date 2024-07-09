@@ -1,33 +1,49 @@
-// src/app/update-content/page.js
+// src/app/api/update-content/route.js
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { supabase } from '@/utils/supabase';  // Adjust the import path as necessary
 
 export async function POST(request) {
   try {
-    const { page, html, javascript } = await request.json();
+    const { page, html, javascript, userId } = await request.json();
     
-    let content;
-    if (javascript !== undefined) {
-      // Separate HTML and JavaScript
-      content = { html, javascript };
-    } else {
-      // Combined HTML with script tags
-      content = { combined: html };
+    // Prepare the data object
+    const pageData = {
+      name: page,
+      html,
+      javascript,
+      is_anonymous: !userId,
+      user_id: userId || null
+    };
+
+    // Check if the page already exists
+    const { data: existingPage, error: fetchError } = await supabase
+      .from('pages')
+      .select('id')
+      .eq('name', page)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {  // PGRST116 is the error code for no rows returned
+      throw fetchError;
     }
 
-    // Ensure the content directory exists
-    const contentDir = path.join(process.cwd(), 'content');
-    try {
-      await fs.access(contentDir);
-    } catch {
-      await fs.mkdir(contentDir, { recursive: true });
+    let error;
+    if (existingPage) {
+      // Update existing page
+      const { error: updateError } = await supabase
+        .from('pages')
+        .update(pageData)
+        .eq('id', existingPage.id);
+      error = updateError;
+    } else {
+      // Insert new page
+      const { error: insertError } = await supabase
+        .from('pages')
+        .insert(pageData);
+      error = insertError;
     }
-    
-    const filePath = path.join(contentDir, `${page}.json`);
-    
-    await fs.writeFile(filePath, JSON.stringify(content));
-    
+
+    if (error) throw error;
+
     return NextResponse.json({ message: 'Content updated successfully' });
   } catch (error) {
     console.error('Error updating content:', error);

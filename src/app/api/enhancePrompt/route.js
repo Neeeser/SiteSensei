@@ -28,7 +28,7 @@ You are a prompt enhancer focused on expanding simple user queries into basic sp
 - Do not include any actual code, bullet points, numbered lists, or section headers.
 - Present the enhanced prompt as a short, continuous paragraph.
 - Keep the expansion simple and avoid adding features not directly related to the user's query.
-
+- Do not include an opening remark just the expanded prompt.
 Provide a basic expansion of the following user query for a single-page web application:
 
 ${prompt}
@@ -42,7 +42,7 @@ ${prompt}
           content: systemPrompt
         }
       ],
-      temperature: 0.7,
+      temperature: 0.3,
     });
 
     const enhancedPrompt = completion.choices[0].message.content;

@@ -1,7 +1,8 @@
 'use client';
+
 import React, { useEffect, useRef } from 'react';
 
-const DynamicContent = ({ html, javascript }) => {
+const DynamicContent = ({ html, javascript, onInteraction }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -15,11 +16,31 @@ const DynamicContent = ({ html, javascript }) => {
 
       const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
       iframeDoc.open();
-      iframeDoc.write(html);
+      iframeDoc.write(`
+        <html>
+          <head>
+            <base target="_parent">
+          </head>
+          <body>${html}</body>
+        </html>
+      `);
       iframeDoc.close();
 
-      // Wait for the iframe content to load before executing scripts
+      // Wait for the iframe content to load before executing scripts and adding event listeners
       iframe.onload = () => {
+        // Prevent default behavior for all links and forms
+        iframeDoc.body.addEventListener('click', (e) => {
+          if (e.target.tagName === 'A' || e.target.closest('a')) {
+            e.preventDefault();
+            onInteraction(e);
+          }
+        }, true);
+
+        iframeDoc.body.addEventListener('submit', (e) => {
+          e.preventDefault();
+          onInteraction(e);
+        }, true);
+
         if (javascript) {
           const script = iframeDoc.createElement('script');
           script.text = `
@@ -31,7 +52,7 @@ const DynamicContent = ({ html, javascript }) => {
         }
       };
     }
-  }, [html, javascript]);
+  }, [html, javascript, onInteraction]);
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
 };
