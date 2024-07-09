@@ -1,6 +1,7 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { supabase } from '../../utils/supabase';
 import PreviewComponent from '../../components/PreviewComponent';
@@ -9,46 +10,83 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 export default function ExplorePage() {
   const [pages, setPages] = useState([]);
   const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const lastLoadedPage = useRef(0);
   const pageSize = 12;
   const loadedPageNames = useRef(new Set());
 
-  const fetchPages = async () => {
-    const from = lastLoadedPage.current;
-    const to = from + pageSize - 1;
-    const { data, error } = await supabase
-      .from('pages')
-      .select('*')
-      .range(from, to)
-      .order('created_at', { ascending: false });
+  const fetchPages = useCallback(async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+    console.log('Fetching pages, last loaded page:', lastLoadedPage.current);
 
-    if (error) {
-      console.error('Error fetching pages:', error);
-      return;
-    }
+    try {
+      const from = lastLoadedPage.current;
+      const to = from + pageSize - 1;
+      const { data, error, count } = await supabase
+        .from('pages')
+        .select(`
+          *,
+          users:user_id (
+            name,
+            picture
+          )
+        `, { count: 'exact' })
+        .range(from, to)
+        .order('created_at', { ascending: false });
 
-    const uniqueData = data.filter(page => {
-      if (!loadedPageNames.current.has(page.name)) {
-        loadedPageNames.current.add(page.name);
-        return true;
+      if (error) throw error;
+
+      console.log('Fetched data:', data);
+      console.log('Total count:', count);
+
+      const uniqueData = data.filter(page => {
+        if (!loadedPageNames.current.has(page.name)) {
+          loadedPageNames.current.add(page.name);
+          return true;
+        }
+        return false;
+      });
+
+      console.log('Unique data length:', uniqueData.length);
+
+      if (uniqueData.length > 0) {
+        setPages(prevPages => [...prevPages, ...uniqueData]);
+        lastLoadedPage.current += uniqueData.length;
       }
-      return false;
-    });
 
-    if (uniqueData.length < pageSize) {
-      setHasMore(false);
+      setHasMore(lastLoadedPage.current < count);
+      console.log('Has more:', lastLoadedPage.current < count);
+    } catch (error) {
+      console.error('Error fetching pages:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    setPages(prevPages => [...prevPages, ...uniqueData]);
-    lastLoadedPage.current += data.length;
-  };
+  }, [isLoading]);
 
   useEffect(() => {
     fetchPages();
-  }, []);
+  }, [fetchPages]);
 
   const previewWidth = 1024;
   const previewHeight = 576; // 16:9 aspect ratio
+
+  const getImageSrc = (user) => {
+    if (!user || !user.picture) return '/default_icon.png';
+    
+    const allowedDomains = [
+      'avatars.githubusercontent.com',
+      'lh3.googleusercontent.com',
+      's.gravatar.com',
+      'auth0.com'
+    ];
+    
+    if (allowedDomains.some(domain => user.picture.includes(domain))) {
+      return user.picture;
+    }
+    
+    return '/default_icon.png';
+  };
 
   return (
     <div className="min-h-full bg-background text-text-light p-4">
@@ -76,11 +114,13 @@ export default function ExplorePage() {
             Featured
           </motion.button>
         </div>
+
         <InfiniteScroll
           dataLength={pages.length}
           next={fetchPages}
           hasMore={hasMore}
           loader={<div className="loading-container"><div className="loading-spinner"></div></div>}
+          endMessage={<p className="text-center mt-4">No more pages to load.</p>}
           className="w-full"
           style={{ overflow: 'visible' }}
         >
@@ -89,7 +129,7 @@ export default function ExplorePage() {
               <Link href={`/${page.name}`} key={page.id} className="no-underline text-inherit">
                 <motion.div
                   whileHover={{ scale: 1.03 }}
-                  className="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300"
+                  className="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 relative"
                 >
                   <div className="relative w-full" style={{ paddingBottom: `${(previewHeight / previewWidth) * 100}%` }}>
                     <div className="absolute inset-0">
@@ -105,6 +145,22 @@ export default function ExplorePage() {
                     <p className="text-sm text-text-light mb-2">{new Date(page.created_at).toLocaleDateString()}</p>
                     <h3 className="text-xl font-semibold text-text-dark">{page.name}</h3>
                   </div>
+                  {!page.is_anonymous && page.users && (
+                    <div className="absolute bottom-2 right-2 group z-10">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white bg-white shadow-md">
+                        <Image
+                          src={getImageSrc(page.users)}
+                          alt={page.users.name || 'User'}
+                          width={40}
+                          height={40}
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="absolute bottom-full right-0 mb-2 p-2 bg-white rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <p className="text-sm font-medium text-text-dark whitespace-nowrap">{page.users.name || 'Anonymous User'}</p>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               </Link>
             ))}
