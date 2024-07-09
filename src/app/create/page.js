@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PreviewComponent from '../../components/PreviewComponent';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
@@ -16,6 +16,23 @@ export default function TestPage() {
   const [selectedModel, setSelectedModel] = useState('FREE_MODEL');
   const [userRole, setUserRole] = useState('free');
   const [isPageGenerated, setIsPageGenerated] = useState(false);
+  const [previewSize, setPreviewSize] = useState({ width: 500, height: 500 });
+  const previewContainerRef = useRef(null);
+
+
+  useEffect(() => {
+    const updatePreviewSize = () => {
+      if (previewContainerRef.current) {
+        const { width, height } = previewContainerRef.current.getBoundingClientRect();
+        setPreviewSize({ width, height });
+      }
+    };
+
+    updatePreviewSize();
+    window.addEventListener('resize', updatePreviewSize);
+    return () => window.removeEventListener('resize', updatePreviewSize);
+  }, []);
+
 
   // New state to track form validity
   const [isFormValid, setIsFormValid] = useState(false);
@@ -137,7 +154,7 @@ export default function TestPage() {
     <div className="container mx-auto px-4 py-8">
       <div className={`max-w-6xl mx-auto ${isSmallScreen ? 'flex flex-col' : 'flex flex-row'} gap-8`}>
         <div className="flex-1">
-          <h1 className="text-shadow">Dynamic Content Test Page</h1>
+          <h1 className="text-shadow">Dynamic Content Generator Page</h1>
           <div className="bg-white shadow-md rounded-lg p-6 mb-8">
             <h2>Generate Dynamic Content</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -199,7 +216,7 @@ export default function TestPage() {
               
               <button 
                 type="submit" 
-                className={`btn btn-primary ${(!isFormValid || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`btn btn-primary w-full ${(!isFormValid || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 disabled={!isFormValid || isLoading}
               >
                 {isLoading ? 'Generating...' : 'Generate Content'}
@@ -208,8 +225,8 @@ export default function TestPage() {
             {message && <p className="mt-4 text-green-600">{message}</p>}
           </div>
           {isPageGenerated && (
-            <div>
-              <h2>View Created Page</h2>
+            <div className="bg-white shadow-md rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-2">View Created Page</h2>
               <p className="text-text-light mb-2">
                 To view your created page, go to: <code className="bg-gray-100 px-2 py-1 rounded">/[page-name]</code>
               </p>
@@ -222,11 +239,18 @@ export default function TestPage() {
             </div>
           )}
         </div>
-        <div className="flex-1">
-          <PreviewComponent 
-            html={htmlContent}
-            javascript={jsContent}
-          />
+        <div className="w-full lg:w-1/2">
+          <div className="bg-white shadow-md rounded-lg p-6" style={{ height: '600px' }}>
+            <h2 className="text-xl font-semibold mb-4">Preview</h2>
+            <div ref={previewContainerRef} style={{ height: 'calc(100% - 2rem)' }}>
+              <PreviewComponent 
+                html={htmlContent}
+                javascript={jsContent}
+                width={previewSize.width}
+                height={previewSize.height}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -47,13 +47,16 @@ export default function ExplorePage() {
     fetchPages();
   }, []);
 
+  const previewWidth = 1024;
+  const previewHeight = 576; // 16:9 aspect ratio
+
   return (
     <div className="min-h-full bg-background text-text-light p-4">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
-        className="w-full max-w-6xl mx-auto"
+        className="w-full max-w-7xl mx-auto"
       >
         <h1 className="text-4xl md:text-5xl font-serif mb-8 text-text-dark text-shadow">Explore</h1>
        
@@ -73,14 +76,13 @@ export default function ExplorePage() {
             Featured
           </motion.button>
         </div>
-
         <InfiniteScroll
           dataLength={pages.length}
           next={fetchPages}
           hasMore={hasMore}
           loader={<div className="loading-container"><div className="loading-spinner"></div></div>}
-          className="w-full" // Remove overflow-hidden here
-          style={{ overflow: 'visible' }} // Add this line to remove the scrollbar
+          className="w-full"
+          style={{ overflow: 'visible' }}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {pages.map(page => (
@@ -89,12 +91,15 @@ export default function ExplorePage() {
                   whileHover={{ scale: 1.03 }}
                   className="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300"
                 >
-                  <div className="h-40 overflow-hidden">
-                    <PreviewComponent
-                      html={page.html}
-                      javascript={page.javascript}
-                      inputMethod="separate"
-                    />
+                  <div className="relative w-full" style={{ paddingBottom: `${(previewHeight / previewWidth) * 100}%` }}>
+                    <div className="absolute inset-0">
+                      <PreviewComponent
+                        html={page.html}
+                        javascript={page.javascript}
+                        width={previewWidth}
+                        height={previewHeight}
+                      />
+                    </div>
                   </div>
                   <div className="p-4">
                     <p className="text-sm text-text-light mb-2">{new Date(page.created_at).toLocaleDateString()}</p>
