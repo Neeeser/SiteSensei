@@ -123,7 +123,8 @@ export default function TestPage() {
             body: JSON.stringify({
               page: pageName,
               html: htmlData.html,
-              javascript: jsData.javascript
+              javascript: jsData.javascript,
+              auth0Id: user ? user.sub : null  // Send Auth0 ID if user is logged in, null otherwise
             }),
           });
           const storeData = await storeResponse.json();
@@ -144,6 +145,7 @@ export default function TestPage() {
       setIsLoading(false);
     }
   };
+
 
   const canUseModel = (model) => {
     if (model === 'FREE_MODEL') return true;

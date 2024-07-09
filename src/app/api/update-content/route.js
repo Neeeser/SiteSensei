@@ -4,15 +4,46 @@ import { supabase } from '@/utils/supabase';  // Adjust the import path as neces
 
 export async function POST(request) {
   try {
-    const { page, html, javascript, userId } = await request.json();
-    
-    // Prepare the data object
+    const { page, html, javascript, auth0Id } = await request.json();
+   
+    let userId = null;
+    let isAnonymous = true;
+
+    if (auth0Id) {
+      // Check if the user exists in our users table
+      let { data: user, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth0_id', auth0Id)
+        .single();
+
+      if (userError && userError.code !== 'PGRST116') {  // PGRST116 is the error code for no rows returned
+        throw userError;
+      }
+
+      if (!user) {
+        // If user doesn't exist, create a new user entry
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert({ auth0_id: auth0Id })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        user = newUser;
+      }
+
+      userId = user.id;
+      isAnonymous = false;
+    }
+
+    // Prepare the data object for the pages table
     const pageData = {
       name: page,
       html,
       javascript,
-      is_anonymous: !userId,
-      user_id: userId || null
+      is_anonymous: isAnonymous,
+      user_id: userId
     };
 
     // Check if the page already exists
@@ -22,7 +53,7 @@ export async function POST(request) {
       .eq('name', page)
       .single();
 
-    if (fetchError && fetchError.code !== 'PGRST116') {  // PGRST116 is the error code for no rows returned
+    if (fetchError && fetchError.code !== 'PGRST116') {
       throw fetchError;
     }
 
