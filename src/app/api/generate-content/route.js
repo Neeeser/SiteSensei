@@ -22,7 +22,7 @@ export async function POST(request) {
     }
 
     const completion = await openai.chat.completions.create({
-      model: "meta-llama/llama-3-8b-instruct:free", 
+      model: process.env.FREE_MODEL, 
       messages: [
         {
           role: "system",
