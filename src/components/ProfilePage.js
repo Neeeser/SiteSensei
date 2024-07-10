@@ -82,7 +82,7 @@ const ProfilePage = ({ nickname }) => {
           className="text-center"
         >
           <h1 className="text-4xl md:text-5xl font-serif mb-4 text-text-light-primary dark:text-text-dark-primary text-shadow">User Not Found</h1>
-          <p className="text-xl text-text-light-secondary dark:text-text-dark-secondary">The user @{nickname} doesn't exist.</p>
+          <p className="text-xl text-text-light-secondary dark:text-text-dark-secondary">The user @{nickname} doesn&apos;t exist.</p>
         </motion.div>
       </div>
     );
