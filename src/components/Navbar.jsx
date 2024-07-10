@@ -73,7 +73,7 @@ const Navbar = () => {
                     />
                   </motion.button>
                   {isProfileOpen && (
-                    <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                       <div className="px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary">{user.name}</div>
                       <Link href="/profile" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Your Profile</Link>
                       <Link href="/settings" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
