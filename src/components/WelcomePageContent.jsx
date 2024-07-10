@@ -45,8 +45,8 @@ const WelcomePageContent = () => {
           className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-md text-text-light-primary dark:text-text-dark-primary max-w-md mx-auto border border-gray-200 dark:border-gray-700"
         >
           <h2 className="text-2xl font-serif mb-4">Begin Your Journey</h2>
-          <p className="mb-6 text-text-light-secondary dark:text-text-dark-secondary">Transform your Web App Idea's into Reality</p>
-          {!isLoading && (
+          <p className="mb-6 text-text-light-secondary dark:text-text-dark-secondary">Transform your Web App Idea&apos;s into Reality</p>
+                    {!isLoading && (
             <Link href={user ? "/create" : "/api/auth/login"} passHref legacyBehavior>
               <motion.a
                 whileHover={{ scale: 1.05 }}
