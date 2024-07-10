@@ -4,18 +4,39 @@ import { motion } from 'framer-motion';
 import { supabase } from '../../utils/supabase';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import PagePreviewCard from '../../components/PagePreviewCard';
-
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 export default function ExplorePage() {
+  const { user, isLoading: userLoading } = useUser();
   const [pages, setPages] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const lastLoadedPage = useRef(0);
   const pageSize = 12;
   const loadedPageNames = useRef(new Set());
+  const [userRole, setUserRole] = useState('free');
+
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        try {
+          const response = await fetch('/api/getUserRole');
+          const data = await response.json();
+
+          setUserRole(data.role);
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
+
 
   const fetchPages = useCallback(async () => {
-    if (isLoading) return;
+    if (isLoading || !hasMore) return;
     setIsLoading(true);
   
     try {
@@ -33,24 +54,28 @@ export default function ExplorePage() {
   
       if (error) throw error;
   
-      const uniqueData = data.filter(page => {
-        return !loadedPageNames.current.has(page.name);
-      });
-  
+      const uniqueData = data.filter(page => !loadedPageNames.current.has(page.name));
       uniqueData.forEach(page => loadedPageNames.current.add(page.name));
   
       if (uniqueData.length > 0) {
         setPages(prevPages => [...prevPages, ...uniqueData]);
-        lastLoadedPage.current += pageSize; // We attempt to fetch pageSize items each time
+        lastLoadedPage.current += uniqueData.length;
       }
   
+      // Update hasMore based on the total count and current number of loaded pages
       setHasMore(lastLoadedPage.current < count);
+  
+      // If we've loaded all pages, set hasMore to false
+      if (lastLoadedPage.current >= count || uniqueData.length === 0) {
+        setHasMore(false);
+      }
     } catch (error) {
       console.error('Error fetching pages:', error);
+      setHasMore(false); // Set hasMore to false on error to prevent further attempts
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, [isLoading, hasMore]);
   
   useEffect(() => {
     fetchPages();
