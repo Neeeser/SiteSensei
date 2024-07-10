@@ -11,11 +11,11 @@ export default function ExplorePage() {
   const [pages, setPages] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeView, setActiveView] = useState('new'); // 'new' or 'featured'
   const lastLoadedPage = useRef(0);
   const pageSize = 12;
   const loadedPageNames = useRef(new Set());
   const [userRole, setUserRole] = useState('free');
-
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -23,7 +23,6 @@ export default function ExplorePage() {
         try {
           const response = await fetch('/api/getUserRole');
           const data = await response.json();
-
           setUserRole(data.role);
         } catch (error) {
           console.error('Error fetching user role:', error);
@@ -34,13 +33,12 @@ export default function ExplorePage() {
     fetchUserRole();
   }, [user]);
 
-
   const fetchPages = useCallback(async () => {
     if (isLoading || !hasMore) return;
     setIsLoading(true);
   
     try {
-      const { data, error, count } = await supabase
+      let query = supabase
         .from('pages')
         .select(`
           *,
@@ -49,8 +47,15 @@ export default function ExplorePage() {
             picture
           )
         `, { count: 'exact' })
-        .range(lastLoadedPage.current, lastLoadedPage.current + pageSize - 1)
-        .order('created_at', { ascending: false });
+        .range(lastLoadedPage.current, lastLoadedPage.current + pageSize - 1);
+
+      if (activeView === 'new') {
+        query = query.order('created_at', { ascending: false });
+      } else if (activeView === 'featured') {
+        query = query.eq('is_favorited', true).order('created_at', { ascending: false });
+      }
+
+      const { data, error, count } = await query;
   
       if (error) throw error;
   
@@ -62,26 +67,64 @@ export default function ExplorePage() {
         lastLoadedPage.current += uniqueData.length;
       }
   
-      // Update hasMore based on the total count and current number of loaded pages
       setHasMore(lastLoadedPage.current < count);
   
-      // If we've loaded all pages, set hasMore to false
       if (lastLoadedPage.current >= count || uniqueData.length === 0) {
         setHasMore(false);
       }
     } catch (error) {
       console.error('Error fetching pages:', error);
-      setHasMore(false); // Set hasMore to false on error to prevent further attempts
+      setHasMore(false);
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, hasMore]);
+  }, [isLoading, hasMore, activeView]);
   
   useEffect(() => {
     fetchPages();
   }, [fetchPages]);
 
+  const handleDelete = async (pageId) => {
+    try {
+      const response = await fetch(`/api/pages/${pageId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete page');
+      setPages(prevPages => prevPages.filter(page => page.id !== pageId));
+    } catch (error) {
+      console.error('Error deleting page:', error);
+    }
+  };
 
+  const handleFavorite = async (pageId, isFavorited) => {
+    try {
+      const response = await fetch(`/api/pages/${pageId}/favorite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_favorited: isFavorited }),
+      });
+      if (!response.ok) throw new Error('Failed to update favorite status');
+      setPages(prevPages =>
+        prevPages.map(page =>
+          page.id === pageId ? { ...page, is_favorited: isFavorited } : page
+        )
+      );
+    } catch (error) {
+      console.error('Error updating favorite status:', error);
+    }
+  };
+
+  const toggleView = (view) => {
+    if (activeView !== view) {
+      setActiveView(view);
+      lastLoadedPage.current = 0;
+      loadedPageNames.current.clear();
+      setPages([]);
+      setHasMore(true);
+    }
+  };
 
   return (
     <div className="min-h-full bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary p-4">
@@ -97,14 +140,16 @@ export default function ExplorePage() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="btn btn-primary"
+            className={`btn ${activeView === 'new' ? 'btn-primary' : 'bg-white dark:bg-gray-800 text-text-light-primary dark:text-text-dark-primary border border-gray-300 dark:border-gray-600'}`}
+            onClick={() => toggleView('new')}
           >
             New Generations
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="btn bg-white dark:bg-gray-800 text-text-light-primary dark:text-text-dark-primary border border-gray-300 dark:border-gray-600"
+            className={`btn ${activeView === 'featured' ? 'btn-primary' : 'bg-white dark:bg-gray-800 text-text-light-primary dark:text-text-dark-primary border border-gray-300 dark:border-gray-600'}`}
+            onClick={() => toggleView('featured')}
           >
             Featured
           </motion.button>
@@ -121,7 +166,13 @@ export default function ExplorePage() {
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {pages.map(page => (
-              <PagePreviewCard key={page.id} page={page} />
+              <PagePreviewCard
+                key={page.id}
+                page={page}
+                userRole={userRole}
+                onDelete={handleDelete}
+                onFavorite={handleFavorite}
+              />
             ))}
           </div>
         </InfiniteScroll>

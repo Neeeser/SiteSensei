@@ -3,23 +3,36 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import PreviewComponent from './PreviewComponent';
+import { Star, Trash2 } from 'lucide-react';
 
-const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576 }) => {
+const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userRole, onDelete, onFavorite }) => {
   const getImageSrc = (user) => {
     if (!user || !user.picture) return '/default_icon.png';
-    
+   
     const allowedDomains = [
       'avatars.githubusercontent.com',
       'lh3.googleusercontent.com',
       's.gravatar.com',
       'auth0.com'
     ];
-    
+   
     if (allowedDomains.some(domain => user.picture.includes(domain))) {
       return user.picture;
     }
-    
+   
     return '/default_icon.png';
+  };
+
+  const handleDelete = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDelete(page.id);
+  };
+
+  const handleFavorite = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onFavorite(page.id, !page.is_favorited);
   };
 
   return (
@@ -28,6 +41,31 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576 }) => 
         whileHover={{ scale: 1.03 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-transform duration-300 relative"
       >
+        {userRole === 'admin' && (
+          <>
+            <motion.div
+              className="absolute top-2 left-2 z-20 cursor-pointer"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleDelete}
+            >
+              <Trash2 className="text-red-500 hover:text-red-600" size={24} />
+            </motion.div>
+            <motion.div
+              className="absolute top-2 right-2 z-20 cursor-pointer"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleFavorite}
+            >
+              <Star
+                className={`${
+                  page.is_favorited ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'
+                } hover:text-yellow-500`}
+                size={24}
+              />
+            </motion.div>
+          </>
+        )}
         <div className="relative w-full" style={{ paddingBottom: `${(previewHeight / previewWidth) * 100}%` }}>
           <div className="absolute inset-0">
             <PreviewComponent
