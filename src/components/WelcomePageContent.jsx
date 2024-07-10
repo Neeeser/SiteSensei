@@ -3,8 +3,11 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 const WelcomePageContent = () => {
+  const { user, isLoading } = useUser();
+
   return (
     <div className="h-full flex items-center justify-center p-4 bg-background-light dark:bg-background-dark">
       <motion.div
@@ -42,16 +45,18 @@ const WelcomePageContent = () => {
           className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-md text-text-light-primary dark:text-text-dark-primary max-w-md mx-auto border border-gray-200 dark:border-gray-700"
         >
           <h2 className="text-2xl font-serif mb-4">Begin Your Journey</h2>
-          <p className="mb-6 text-text-light-secondary dark:text-text-dark-secondary">Transform your Web App Idea&apos;s into Reality</p>
-          <Link href="/api/auth/login" passHref legacyBehavior>
-            <motion.a
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="btn btn-primary inline-block"
-            >
-              Login/Signup
-            </motion.a>
-          </Link>
+          <p className="mb-6 text-text-light-secondary dark:text-text-dark-secondary">Transform your Web App Idea's into Reality</p>
+          {!isLoading && (
+            <Link href={user ? "/create" : "/api/auth/login"} passHref legacyBehavior>
+              <motion.a
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="btn btn-primary inline-block"
+              >
+                {user ? "Create" : "Login/Signup"}
+              </motion.a>
+            </Link>
+          )}
         </motion.div>
         <motion.footer
           initial={{ opacity: 0 }}
