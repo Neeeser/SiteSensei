@@ -14,8 +14,29 @@ const Navbar = () => {
   const { user, error, isLoading } = useUser();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [dbUser, setDbUser] = useState(null);
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (user) {
+        try {
+          const response = await fetch('/api/user');
+          if (response.ok) {
+            const userData = await response.json();
+            setDbUser(userData);
+          } else {
+            console.error('Failed to fetch user data');
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [user]);
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const toggleProfile = () => setIsProfileOpen(!isProfileOpen);
@@ -25,6 +46,8 @@ const Navbar = () => {
   };
 
   if (!mounted) return null;
+
+  const userNickname = dbUser?.nickname || dbUser?.name?.replace(/\s+/g, '-').toLowerCase();
 
   return (
     <nav className="bg-white dark:bg-gray-800 shadow-md">
@@ -69,13 +92,13 @@ const Navbar = () => {
                     <img
                       className="h-8 w-8 rounded-full"
                       src={user.picture || "/api/placeholder/32/32"}
-                      alt={user.name || "User profile"}
+                      alt={dbUser?.name || "User profile"}
                     />
                   </motion.button>
                   {isProfileOpen && (
                     <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                      <div className="px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary">{user.name}</div>
-                      <Link href="/profile" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Your Profile</Link>
+                      <div className="px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary">{dbUser?.name}</div>
+                      <Link href={`/profile/${userNickname}`} className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Your Profile</Link>
                       <Link href="/settings" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
                       <Link href="/api/auth/logout" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Logout</Link>
                     </div>
@@ -120,11 +143,11 @@ const Navbar = () => {
                   <img
                     className="h-10 w-10 rounded-full"
                     src={user.picture || "/api/placeholder/40/40"}
-                    alt={user.name || "User profile"}
+                    alt={dbUser?.name || "User profile"}
                   />
                 </div>
                 <div className="ml-3">
-                  <div className="text-base font-medium text-text-light-primary dark:text-text-dark-primary">{user.name}</div>
+                  <div className="text-base font-medium text-text-light-primary dark:text-text-dark-primary">{dbUser?.name}</div>
                   <div className="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">{user.email}</div>
                 </div>
                 <button
@@ -135,7 +158,7 @@ const Navbar = () => {
                 </button>
               </div>
               <div className="mt-3 px-2 space-y-1">
-                <Link href="/profile" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary hover:bg-gray-700">Your Profile</Link>
+                <Link href={`/profile/${userNickname}`} className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary hover:bg-gray-700">Your Profile</Link>
                 <Link href="/settings" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary hover:bg-gray-700">Settings</Link>
                 <Link href="/api/auth/logout" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary hover:bg-gray-700">Logout</Link>
               </div>
