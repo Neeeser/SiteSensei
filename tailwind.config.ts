@@ -6,16 +6,26 @@ const config: Config = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class', // Enable class-based dark mode
   theme: {
     extend: {
       colors: {
         'primary': '#3490dc',
         'secondary': '#gfed4a',
         'danger': '#e3342f',
-        'background': '#f7fafc',
+        'background': {
+          light: '#f7fafc',
+          dark: '#1a202c',
+        },
         'text': {
-          'light': '#4a5568',
-          'dark': '#2d3748',
+          light: {
+            primary: '#4a5568',
+            secondary: '#718096',
+          },
+          dark: {
+            primary: '#e2e8f0',
+            secondary: '#a0aec0',
+          },
         },
       },
       fontFamily: {

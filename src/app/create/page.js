@@ -156,26 +156,26 @@ export default function TestPage() {
     <div className="container mx-auto px-4 py-8">
       <div className={`max-w-6xl mx-auto ${isSmallScreen ? 'flex flex-col' : 'flex flex-row'} gap-8`}>
         <div className="flex-1">
-          <h1 className="text-shadow">Dynamic Content Generator Page</h1>
-          <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-            <h2>Generate Dynamic Content</h2>
+          <h1 className="text-4xl font-bold mb-6 text-text-light-primary dark:text-text-dark-primary">Dynamic Content Generator Page</h1>
+          <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-8">
+            <h2 className="text-2xl font-semibold mb-4 text-text-light-primary dark:text-text-dark-primary">Generate Dynamic Content</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="pageName" className="block text-text-dark mb-2">Page Name:</label>
+                <label htmlFor="pageName" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Page Name:</label>
                 <input
                   id="pageName"
                   type="text"
                   value={pageName}
                   onChange={handlePageNameChange}
                   required
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
                   placeholder="Enter URL-compliant page name (a-z, 0-9, -)"
                   pattern="^[a-z0-9-]+$"
                   title="Only lowercase letters, numbers, and hyphens are allowed"
                 />
               </div>
               <div>
-                <label className="block text-text-dark mb-2">Select Model:</label>
+                <label className="block text-text-light-primary dark:text-text-dark-primary mb-2">Select Model:</label>
                 <div className="flex gap-4">
                   {['FREE_MODEL', 'PRO_MODEL', 'ADVANCED_MODEL'].map((model) => (
                     <label key={model} className={`flex items-center ${!canUseModel(model) ? 'opacity-50' : ''}`}>
@@ -188,20 +188,20 @@ export default function TestPage() {
                         disabled={!canUseModel(model)}
                         className="mr-2"
                       />
-                      <span className="text-text-light">{model.split('_')[0].toLowerCase()}</span>
+                      <span className="text-text-light-secondary dark:text-text-dark-secondary">{model.split('_')[0].toLowerCase()}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <label htmlFor="promptContent" className="block text-text-dark mb-2">Prompt for Content Generation:</label>
+                <label htmlFor="promptContent" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Prompt for Content Generation:</label>
                 <textarea
                   id="promptContent"
                   value={promptContent}
                   onChange={(e) => setPromptContent(e.target.value)}
                   rows={5}
                   required
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
                   placeholder="Describe the content you want to generate..."
                 />
               </div>
@@ -213,7 +213,7 @@ export default function TestPage() {
                   onChange={(e) => setEnhancePrompt(e.target.checked)}
                   className="mr-2"
                 />
-                <label htmlFor="enhancePrompt" className="text-text-light">Enhance prompt before generation</label>
+                <label htmlFor="enhancePrompt" className="text-text-light-secondary dark:text-text-dark-secondary">Enhance prompt before generation</label>
               </div>
               
               <button 
@@ -224,17 +224,17 @@ export default function TestPage() {
                 {isLoading ? 'Generating...' : 'Generate Content'}
               </button>
             </form>
-            {message && <p className="mt-4 text-green-600">{message}</p>}
+            {message && <p className="mt-4 text-green-600 dark:text-green-400">{message}</p>}
           </div>
           {isPageGenerated && (
-            <div className="bg-white shadow-md rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-2">View Created Page</h2>
-              <p className="text-text-light mb-2">
-                To view your created page, go to: <code className="bg-gray-100 px-2 py-1 rounded">/[page-name]</code>
+            <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-2 text-text-light-primary dark:text-text-dark-primary">View Created Page</h2>
+              <p className="text-text-light-secondary dark:text-text-dark-secondary mb-2">
+                To view your created page, go to: <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">/[page-name]</code>
               </p>
-              <p>
+              <p className="text-text-light-primary dark:text-text-dark-primary">
                 Your page is now available at:{' '}
-                <a href={`/${pageName}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-blue-800">
+                <a href={`/${pageName}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                   /{pageName}
                 </a>
               </p>
@@ -242,8 +242,8 @@ export default function TestPage() {
           )}
         </div>
         <div className="w-full lg:w-1/2">
-          <div className="bg-white shadow-md rounded-lg p-6" style={{ height: '600px' }}>
-            <h2 className="text-xl font-semibold mb-4">Preview</h2>
+          <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6" style={{ height: '600px' }}>
+            <h2 className="text-xl font-semibold mb-4 text-text-light-primary dark:text-text-dark-primary">Preview</h2>
             <div ref={previewContainerRef} style={{ height: 'calc(100% - 2rem)' }}>
               <PreviewComponent 
                 html={htmlContent}

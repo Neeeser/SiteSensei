@@ -6,7 +6,7 @@ import Image from 'next/image';
 
 const WelcomePageContent = () => {
   return (
-    <div className="h-full flex items-center justify-center p-4 bg-background">
+    <div className="h-full flex items-center justify-center p-4 bg-background-light dark:bg-background-dark">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -32,17 +32,17 @@ const WelcomePageContent = () => {
               className="w-full h-full object-contain"
             />
           </motion.div>
-          <h1 className="text-4xl md:text-5xl font-serif mb-4 text-text-dark text-shadow">Site Sensei</h1>
-          <p className="text-xl mb-8 text-text-light font-light">Generate interactive code for your website quickly</p>
+          <h1 className="text-4xl md:text-5xl font-serif mb-4 text-text-light-primary dark:text-text-dark-primary text-shadow">Site Sensei</h1>
+          <p className="text-xl mb-8 text-text-light-secondary dark:text-text-dark-secondary font-light">Generate interactive code for your website quickly</p>
         </motion.div>
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.8 }}
-          className="bg-white rounded-lg p-8 shadow-md text-text-dark max-w-md mx-auto border border-gray-200"
+          className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-md text-text-light-primary dark:text-text-dark-primary max-w-md mx-auto border border-gray-200 dark:border-gray-700"
         >
           <h2 className="text-2xl font-serif mb-4">Begin Your Journey</h2>
-          <p className="mb-6 text-text-light">Transform your Web App Idea&apos;s into Reality</p>
+          <p className="mb-6 text-text-light-secondary dark:text-text-dark-secondary">Transform your Web App Idea&apos;s into Reality</p>
           <Link href="/api/auth/login" passHref legacyBehavior>
             <motion.a
               whileHover={{ scale: 1.05 }}
@@ -57,7 +57,7 @@ const WelcomePageContent = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8, duration: 0.5 }}
-          className="mt-12 text-sm text-text-light"
+          className="mt-12 text-sm text-text-light-secondary dark:text-text-dark-secondary"
         >
           © 2024 Site Sensei
         </motion.footer>
