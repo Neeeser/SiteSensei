@@ -1,81 +1,84 @@
 'use client';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { useUser } from '@auth0/nextjs-auth0/client';
+import { supabase } from '../utils/supabase';
+import InfiniteScroll from 'react-infinite-scroll-component';
+import PreviewComponent from '../components/PreviewComponent';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { supabase } from '../../utils/supabase';
-import PreviewComponent from '../../components/PreviewComponent';
-import InfiniteScroll from 'react-infinite-scroll-component';
 
-export default function ExplorePage() {
+const ProfilePage = () => {
+  const { user, error, isLoading } = useUser();
   const [pages, setPages] = useState([]);
   const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingPages, setIsLoading] = useState(false);
   const lastLoadedPage = useRef(0);
   const pageSize = 12;
   const loadedPageNames = useRef(new Set());
-
-  const fetchPages = useCallback(async () => {
-    if (isLoading) return;
-    setIsLoading(true);
-  
-    try {
-      const { data, error, count } = await supabase
-        .from('pages')
-        .select(`
-          *,
-          users:user_id (
-            name,
-            picture
-          )
-        `, { count: 'exact' })
-        .range(lastLoadedPage.current, lastLoadedPage.current + pageSize - 1)
-        .order('created_at', { ascending: false });
-  
-      if (error) throw error;
-  
-      const uniqueData = data.filter(page => {
-        return !loadedPageNames.current.has(page.name);
-      });
-  
-      uniqueData.forEach(page => loadedPageNames.current.add(page.name));
-  
-      if (uniqueData.length > 0) {
-        setPages(prevPages => [...prevPages, ...uniqueData]);
-        lastLoadedPage.current += pageSize; // We attempt to fetch pageSize items each time
-      }
-  
-      setHasMore(lastLoadedPage.current < count);
-    } catch (error) {
-      console.error('Error fetching pages:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoading]);
-  
-  useEffect(() => {
-    fetchPages();
-  }, [fetchPages]);
-
   const previewWidth = 1024;
   const previewHeight = 576; // 16:9 aspect ratio
 
-  const getImageSrc = (user) => {
-    if (!user || !user.picture) return '/default_icon.png';
-    
-    const allowedDomains = [
-      'avatars.githubusercontent.com',
-      'lh3.googleusercontent.com',
-      's.gravatar.com',
-      'auth0.com'
-    ];
-    
-    if (allowedDomains.some(domain => user.picture.includes(domain))) {
-      return user.picture;
+  const fetchUserPages = useCallback(async () => {
+    if (!user || isLoading) return;
+    setIsLoading(true);
+
+    try {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('auth0_id', user.sub)
+        .single();
+
+      if (userError) throw userError;
+
+      const uuid = userData.id;
+      const { data, error, count } = await supabase
+      .from('pages')
+      .select(`
+        id, name, created_at, html, javascript,
+        users:user_id (name, picture)
+      `, { count: 'exact' })
+      .eq('user_id', uuid)
+      .range(lastLoadedPage.current, lastLoadedPage.current + pageSize - 1)
+      .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const uniqueData = data.filter(page => {
+        return !loadedPageNames.current.has(page.id); // Assuming 'id' is a unique identifier
+      });
+
+      uniqueData.forEach(page => loadedPageNames.current.add(page.id));
+
+      if (uniqueData.length > 0) {
+        setPages(prevPages => [...prevPages, ...uniqueData]);
+        lastLoadedPage.current += pageSize; // Ensure pagination consistency
+      }
+
+      setHasMore(lastLoadedPage.current < count);
+    } catch (error) {
+      console.error('Error fetching user pages:', error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    return '/default_icon.png';
-  };
+  }, [user, isLoading]);
+
+  useEffect(() => {
+    fetchUserPages();
+  }, [fetchUserPages]);
+
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
 
   return (
     <div className="min-h-full bg-background text-text-light p-4">
@@ -85,30 +88,47 @@ export default function ExplorePage() {
         transition={{ duration: 1 }}
         className="w-full max-w-7xl mx-auto"
       >
-        <h1 className="text-4xl md:text-5xl font-serif mb-8 text-text-dark text-shadow">Explore</h1>
-       
-        <div className="flex mb-8 space-x-4">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="btn btn-primary"
+            <div className="h-full flex items-center justify-center p-4 bg-background">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        className="w-full max-w-4xl mx-auto text-center"
+      >
+        <motion.div
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.8 }}
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="w-16 h-16 mx-auto mb-6"
           >
-            New Generations
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="btn bg-white text-text-dark border border-gray-300"
-          >
-            Featured
-          </motion.button>
-        </div>
-
+            <Image
+              src={user.picture}
+              alt="Profile Picture"
+              width={128}
+              height={128}
+              className="w-full h-full object-contain rounded-full"
+            />
+          </motion.div>
+          <h1 className="text-4xl md:text-5xl font-serif mb-4 text-text-dark text-shadow">{user.name}</h1>
+          <p className="text-xl mb-8 text-text-light font-light">{user.email}</p>
+        </motion.div>
+      </motion.div>
+    </div>
+        <h1 className="text-4xl md:text-5xl font-serif mb-8 text-text-dark text-shadow">My Pages</h1>
         <InfiniteScroll
           dataLength={pages.length}
-          next={fetchPages}
+          next={fetchUserPages}
           hasMore={hasMore}
-          loader={<div className="loading-container"><div className="loading-spinner"></div></div>}
+          loader={
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+            </div>
+          }
           endMessage={<p className="text-center mt-4">No more pages to load.</p>}
           className="w-full"
           style={{ overflow: 'visible' }}
@@ -132,13 +152,13 @@ export default function ExplorePage() {
                   </div>
                   <div className="p-4">
                     <p className="text-sm text-text-light mb-2">{new Date(page.created_at).toLocaleDateString()}</p>
-                    <h3 className="text-xl font-semibold text-text-dark">{page.name}</h3>
+                    <h3 className="text-xl font-semibold text-text-dark">{page.name || 'Untitled Page'}</h3>
                   </div>
                   {!page.is_anonymous && page.users && (
                     <div className="absolute bottom-2 right-2 group z-10">
                       <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white bg-white shadow-md">
                         <Image
-                          src={getImageSrc(page.users)}
+                          src={user.picture}
                           alt={page.users.name || 'User'}
                           width={40}
                           height={40}
@@ -158,4 +178,6 @@ export default function ExplorePage() {
       </motion.div>
     </div>
   );
-}
+};
+
+export default ProfilePage;
