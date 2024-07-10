@@ -156,9 +156,9 @@ export default function TestPage() {
     <div className="container mx-auto px-4 py-8">
       <div className={`max-w-6xl mx-auto ${isSmallScreen ? 'flex flex-col' : 'flex flex-row'} gap-8`}>
         <div className="flex-1">
-          <h1 className="text-4xl font-bold mb-6 text-text-light-primary dark:text-text-dark-primary">Dynamic Content Generator Page</h1>
+          <h1 className="text-4xl font-bold mb-6 text-text-light-primary dark:text-text-dark-primary">Dynamic Content Generator</h1>
           <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-8">
-            <h2 className="text-2xl font-semibold mb-4 text-text-light-primary dark:text-text-dark-primary">Generate Dynamic Content</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-text-light-primary dark:text-text-dark-primary">Generate a Webpage with AI</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="pageName" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Page Name:</label>
