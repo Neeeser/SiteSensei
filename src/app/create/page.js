@@ -18,7 +18,70 @@ export default function TestPage() {
   const [isPageGenerated, setIsPageGenerated] = useState(false);
   const [previewSize, setPreviewSize] = useState({ width: 500, height: 500 });
   const previewContainerRef = useRef(null);
+  const [placeholderText, setPlaceholderText] = useState('Describe the content you want to generate...');
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [initialDelayPassed, setInitialDelayPassed] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
 
+  const placeholderExamples = [
+    'Generate a compound interest calculator',
+    'Create a resume website',
+    'Design a shopping page for dog food',
+    'Build a weather dashboard',
+    'Develop a recipe finder app',
+    'Create an interactive quiz game',
+    'Design a fitness tracking app',
+    'Build a personal budget planner',
+    'Generate a portfolio showcase',
+    'Create a virtual plant care assistant'
+  ];
+
+  const getRandomTypingSpeed = () => {
+    return Math.floor(Math.random() * (180 - 80 + 1) + 80); // Random speed between 80ms and 180ms
+  };
+
+
+  useEffect(() => {
+    let timer;
+    console.log("Current state:", { initialLoad, initialDelayPassed, isTyping, placeholderText, currentExampleIndex });
+  
+    if (initialLoad) {
+      timer = setTimeout(() => {
+        setInitialLoad(false);
+        setInitialDelayPassed(true);
+        setIsTyping(false); // Start by deleting the initial placeholder
+        console.log("Initial delay passed, starting to delete initial placeholder");
+      }, 5000);
+    } else if (initialDelayPassed) {
+      const currentExample = placeholderExamples[currentExampleIndex];
+  
+      if (isTyping) {
+        if (placeholderText !== currentExample) {
+          timer = setTimeout(() => {
+            setPlaceholderText(currentExample.slice(0, placeholderText.length + 1));
+          }, getRandomTypingSpeed());
+        } else {
+          timer = setTimeout(() => {
+            setIsTyping(false);
+          }, 2000);
+        }
+      } else {
+        if (placeholderText.length > 0) {
+          timer = setTimeout(() => {
+            setPlaceholderText(placeholderText.slice(0, -1));
+          }, 50);
+        } else {
+          console.log("Moving to next example");
+          setCurrentExampleIndex((prevIndex) => (prevIndex + 1) % placeholderExamples.length);
+          setIsTyping(true);
+        }
+      }
+    }
+  
+    return () => clearTimeout(timer);
+  }, [placeholderText, currentExampleIndex, isTyping, initialLoad, initialDelayPassed]);
 
   useEffect(() => {
     const updatePreviewSize = () => {
@@ -196,14 +259,14 @@ export default function TestPage() {
               <div>
                 <label htmlFor="promptContent" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Prompt for Content Generation:</label>
                 <textarea
-                  id="promptContent"
-                  value={promptContent}
-                  onChange={(e) => setPromptContent(e.target.value)}
-                  rows={5}
-                  required
-                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
-                  placeholder="Describe the content you want to generate..."
-                />
+  id="promptContent"
+  value={promptContent}
+  onChange={(e) => setPromptContent(e.target.value)}
+  rows={5}
+  required
+  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
+  placeholder={initialLoad || !initialDelayPassed ? "Describe the content you want to generate..." : placeholderText}
+/>
               </div>
               <div className="flex items-center">
                 <input
