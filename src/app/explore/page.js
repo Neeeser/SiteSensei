@@ -11,7 +11,7 @@ export default function ExplorePage() {
   const [pages, setPages] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeView, setActiveView] = useState('new'); // 'new' or 'featured'
+  const [activeView, setActiveView] = useState('new');
   const lastLoadedPage = useRef(0);
   const pageSize = 12;
   const loadedPageNames = useRef(new Set());
@@ -117,12 +117,17 @@ export default function ExplorePage() {
   };
 
   const toggleView = (view) => {
-    if (activeView !== view) {
+    if (activeView !== view && !isLoading) {
+      setIsLoading(true);
       setActiveView(view);
       lastLoadedPage.current = 0;
       loadedPageNames.current.clear();
       setPages([]);
       setHasMore(true);
+      // Use setTimeout to ensure state updates before fetching new pages
+      setTimeout(() => {
+        fetchPages().then(() => setIsLoading(false));
+      }, 0);
     }
   };
 
@@ -138,18 +143,20 @@ export default function ExplorePage() {
        
         <div className="flex mb-8 space-x-4">
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`btn ${activeView === 'new' ? 'btn-primary' : 'bg-white dark:bg-gray-800 text-text-light-primary dark:text-text-dark-primary border border-gray-300 dark:border-gray-600'}`}
+            whileHover={{ scale: isLoading ? 1 : 1.05 }}
+            whileTap={{ scale: isLoading ? 1 : 0.95 }}
+            className={`btn ${activeView === 'new' ? 'btn-primary' : 'bg-white dark:bg-gray-800 text-text-light-primary dark:text-text-dark-primary border border-gray-300 dark:border-gray-600'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => toggleView('new')}
+            disabled={isLoading}
           >
             New Generations
           </motion.button>
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`btn ${activeView === 'featured' ? 'btn-primary' : 'bg-white dark:bg-gray-800 text-text-light-primary dark:text-text-dark-primary border border-gray-300 dark:border-gray-600'}`}
+            whileHover={{ scale: isLoading ? 1 : 1.05 }}
+            whileTap={{ scale: isLoading ? 1 : 0.95 }}
+            className={`btn ${activeView === 'featured' ? 'btn-primary' : 'bg-white dark:bg-gray-800 text-text-light-primary dark:text-text-dark-primary border border-gray-300 dark:border-gray-600'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => toggleView('featured')}
+            disabled={isLoading}
           >
             Featured
           </motion.button>
