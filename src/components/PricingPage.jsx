@@ -13,8 +13,8 @@ const PricingPage = () => {
       features: [
         { name: "Generations per day", value: "5" },
         { name: "Access to basic models", value: true },
-        { name: "Priority support", value: false },
-        { name: "Advanced features", value: false },
+        { name: "Download Code", value: false },
+        { name: "Advanced model", value: false },
       ],
     },
     {
@@ -24,8 +24,8 @@ const PricingPage = () => {
       features: [
         { name: "Generations per day", value: "Unlimited" },
         { name: "Access to basic models", value: true },
-        { name: "Priority support", value: true },
-        { name: "Advanced features", value: false },
+        { name: "Download Code", value: true },
+        { name: "Advanced model", value: false },
       ],
     },
     {
@@ -35,8 +35,8 @@ const PricingPage = () => {
       features: [
         { name: "Generations per day", value: "Unlimited" },
         { name: "Access to basic models", value: true },
-        { name: "Priority support", value: true },
-        { name: "Advanced features", value: true },
+        { name: "Download Code", value: true },
+        { name: "Advanced model", value: true },
       ],
     },
   ];
