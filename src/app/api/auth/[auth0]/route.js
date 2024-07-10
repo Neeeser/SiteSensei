@@ -17,69 +17,56 @@ async function updateUserInSupabase(user) {
       throw fetchError;
     }
 
-    let nickname = user.nickname || null;
-    if (nickname) {
-      // Check if the nickname already exists in the database
-      const { data: existingNickname, error: nicknameError } = await supabase
-        .from('users')
-        .select('nickname')
-        .eq('nickname', nickname)
-        .single();
-
-      if (!nicknameError && existingNickname) {
-        // If the nickname exists, generate a random UUID as the nickname
-        nickname = uuidv4();
-      }
-    }
-
-    const userData = {
-      auth0_id: user.sub,
-      name: user.name || null,
-      given_name: user.given_name || null,
-      family_name: user.family_name || null,
-      nickname: nickname,
-      picture: user.picture || null,
-      email: user.email || null,
-      email_verified: user.email_verified || null,
-      locale: user.locale || null,
-      phone_number: user.phone_number || null,
-      phone_number_verified: user.phone_number_verified || null,
-      birthdate: user.birthdate || null,
-      address: user.address ? JSON.stringify(user.address) : null,
-      last_login: new Date().toISOString(),
-    };
-
-    let error;
-    if (existingUser) {
-      console.log('Updating existing user');
-      // Only update fields that are different from existing data
-      const updatedFields = Object.entries(userData).reduce((acc, [key, value]) => {
-        if (value !== existingUser[key]) {
-          acc[key] = value;
-        }
-        return acc;
-      }, {});
-      if (Object.keys(updatedFields).length > 0) {
-        const { data: updatedUser, error: updateError } = await supabase
+    if (!existingUser) {
+      let nickname = user.nickname || null;
+      if (nickname) {
+        // Check if the nickname already exists in the database for new users only
+        const { data: existingNickname, error: nicknameError } = await supabase
           .from('users')
-          .update(updatedFields)
-          .eq('auth0_id', user.sub)
+          .select('nickname')
+          .eq('nickname', nickname)
           .single();
-        error = updateError;
-        console.log('Update result:', updatedUser, updateError);
-      } else {
-        console.log('No fields to update');
+        if (!nicknameError && existingNickname) {
+          // If the nickname exists, generate a random UUID as the nickname for new users
+          nickname = uuidv4();
+        }
       }
-    } else {
+
+      const userData = {
+        auth0_id: user.sub,
+        name: user.name || null,
+        given_name: user.given_name || null,
+        family_name: user.family_name || null,
+        nickname: nickname,
+        picture: user.picture || null,
+        email: user.email || null,
+        email_verified: user.email_verified || null,
+        locale: user.locale || null,
+        phone_number: user.phone_number || null,
+        phone_number_verified: user.phone_number_verified || null,
+        birthdate: user.birthdate || null,
+        address: user.address ? JSON.stringify(user.address) : null,
+        last_login: new Date().toISOString(),
+      };
+
       console.log('Inserting new user');
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert(userData)
         .single();
-      error = insertError;
-      console.log('Insert result:', newUser, insertError);
+      if (insertError) throw insertError;
+      console.log('Insert result:', newUser);
+    } else {
+      console.log('Updating existing user');
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update({ last_login: new Date().toISOString() })
+        .eq('auth0_id', user.sub)
+        .single();
+      if (updateError) throw updateError;
+      console.log('Update result:', updatedUser);
     }
-    if (error) throw error;
+
     console.log('User data updated successfully');
   } catch (error) {
     console.error('Error updating user in Supabase:', error);

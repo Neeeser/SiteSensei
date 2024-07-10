@@ -12,12 +12,10 @@ async function isAdmin(userId: string): Promise<boolean> {
     .select('role')
     .eq('auth0_id', userId)
     .single();
-
   if (error) {
     console.error('Error checking user role:', error);
     return false;
   }
-
   return data?.role === 'admin';
 }
 
@@ -27,13 +25,10 @@ export async function POST(req: Request) {
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-
     const requestData = await req.json();
     const { targetUserId, ...updateData } = requestData;
-
     const isAdminUser = await isAdmin(session.user.sub);
     let userIdToUpdate = session.user.sub;
-
     // If admin and targetUserId provided, update the target user
     if (isAdminUser && targetUserId) {
       userIdToUpdate = targetUserId;
@@ -42,21 +37,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    // Check if the nickname is being updated
+    if (updateData.nickname) {
+      const { data: existingUser, error: existingUserError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('nickname', updateData.nickname)
+        .neq('auth0_id', userIdToUpdate)
+        .single();
+
+      if (existingUserError && existingUserError.code !== 'PGRST116') {
+        throw existingUserError;
+      }
+
+      if (existingUser) {
+        return NextResponse.json({ error: 'Nickname already exists' }, { status: 409 });
+      }
+    }
+
     // Filter out non-allowed fields for non-admin users
     const filteredUpdateData = isAdminUser
       ? updateData
       : Object.fromEntries(
           Object.entries(updateData).filter(([key]) => allowedFields.includes(key))
         );
-
     const { data, error } = await supabase
       .from('users')
       .update(filteredUpdateData)
       .eq('auth0_id', userIdToUpdate)
       .select();
-
     if (error) throw error;
-
     return NextResponse.json({ message: 'User updated successfully', data });
   } catch (error) {
     console.error('Error updating user:', error);

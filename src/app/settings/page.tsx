@@ -6,9 +6,9 @@ import { supabase } from '@/utils/supabase';
 interface UserData {
   name: string;
   nickname: string;
-  phone_number: string;
-  birthdate: string;
-  address: string;
+  phone_number: string | null;
+  birthdate: string | null;
+  address: string | null;
 }
 
 interface ValidationErrors {
@@ -20,9 +20,9 @@ export default function SettingsPage() {
   const [userData, setUserData] = useState<UserData>({
     name: '',
     nickname: '',
-    phone_number: '',
-    birthdate: '',
-    address: '',
+    phone_number: null,
+    birthdate: null,
+    address: null,
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isUpdating, setIsUpdating] = useState(false);
@@ -50,39 +50,54 @@ export default function SettingsPage() {
     }
   };
 
-  const validateField = (name: string, value: string): string => {
+  const validateField = async (name: string, value: string | null): Promise<string> => {
     switch (name) {
       case 'name':
-        return value.trim().length < 2 ? 'Name must be at least 2 characters long' : '';
+        return value && value.trim().length < 2 ? 'Name must be at least 2 characters long' : '';
       case 'nickname':
-        return !/^[a-zA-Z0-9_-]{2,20}$/.test(value) ? 'Nickname must be 2-20 characters and can only contain letters, numbers, underscores, and hyphens' : '';
+        if (!value || !/^[a-zA-Z0-9_-]{2,20}$/.test(value)) {
+          return 'Nickname must be 2-20 characters and can only contain letters, numbers, underscores, and hyphens';
+        }
+        const { data: existingUser, error: existingUserError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('nickname', value)
+          .neq('auth0_id', user?.sub)
+          .single();
+        if (existingUserError && existingUserError.code !== 'PGRST116') {
+          throw existingUserError;
+        }
+        return existingUser ? 'Nickname already exists' : '';
       case 'phone_number':
-        return !/^\+?[1-9]\d{1,14}$/.test(value) ? 'Please enter a valid phone number' : '';
+        return value && !/^\+?[1-9]\d{1,14}$/.test(value) ? 'Please enter a valid phone number' : '';
       case 'birthdate':
-        const date = new Date(value);
-        const now = new Date();
-        return date > now ? 'Birthdate cannot be in the future' : '';
+        if (value) {
+          const date = new Date(value);
+          const now = new Date();
+          return date > now ? 'Birthdate cannot be in the future' : '';
+        }
+        return '';
       case 'address':
-        return value.trim().length < 5 ? 'Please enter a valid address' : '';
+        return value && value.trim().length < 5 ? 'Please enter a valid address' : '';
       default:
         return '';
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setUserData(prev => ({ ...prev, [name]: value }));
-    const error = validateField(name, value);
+    const error = await validateField(name, value);
     setErrors(prev => ({ ...prev, [name]: error }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: ValidationErrors = {};
-    Object.entries(userData).forEach(([key, value]) => {
-      const error = validateField(key, value);
+    for (const [key, value] of Object.entries(userData)) {
+      const error = await validateField(key, value);
       if (error) newErrors[key] = error;
-    });
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -125,7 +140,7 @@ export default function SettingsPage() {
               type={key === 'birthdate' ? 'date' : key === 'phone_number' ? 'tel' : 'text'}
               id={key}
               name={key}
-              value={value}
+              value={value || ''}
               onChange={handleInputChange}
               className={`w-full px-3 py-2 border rounded-md ${errors[key] ? 'border-red-500' : ''}`}
             />
