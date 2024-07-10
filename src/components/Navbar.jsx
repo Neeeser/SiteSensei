@@ -51,7 +51,7 @@ const Navbar = () => {
             <div className="ml-4 flex items-center md:ml-6">
               <button
                 onClick={toggleDarkMode}
-                className="p-2 text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
+                className="mr-4 p-2 text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
               >
                 {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
               </button>
