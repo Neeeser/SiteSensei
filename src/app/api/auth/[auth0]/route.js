@@ -1,10 +1,10 @@
 import { handleAuth, handleCallback, getSession } from '@auth0/nextjs-auth0';
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';
+import { v4 as uuidv4 } from 'uuid';
 
 async function updateUserInSupabase(user) {
   console.log('Updating user in Supabase:', user);
-
   try {
     // Check if user exists in the database
     const { data: existingUser, error: fetchError } = await supabase
@@ -12,11 +12,24 @@ async function updateUserInSupabase(user) {
       .select('*')
       .eq('auth0_id', user.sub)
       .single();
-
     console.log('Existing user check result:', existingUser, fetchError);
-
     if (fetchError && fetchError.code !== 'PGRST116') {
       throw fetchError;
+    }
+
+    let nickname = user.nickname || null;
+    if (nickname) {
+      // Check if the nickname already exists in the database
+      const { data: existingNickname, error: nicknameError } = await supabase
+        .from('users')
+        .select('nickname')
+        .eq('nickname', nickname)
+        .single();
+
+      if (!nicknameError && existingNickname) {
+        // If the nickname exists, generate a random UUID as the nickname
+        nickname = uuidv4();
+      }
     }
 
     const userData = {
@@ -24,7 +37,7 @@ async function updateUserInSupabase(user) {
       name: user.name || null,
       given_name: user.given_name || null,
       family_name: user.family_name || null,
-      nickname: user.nickname || null,
+      nickname: nickname,
       picture: user.picture || null,
       email: user.email || null,
       email_verified: user.email_verified || null,
@@ -46,7 +59,6 @@ async function updateUserInSupabase(user) {
         }
         return acc;
       }, {});
-
       if (Object.keys(updatedFields).length > 0) {
         const { data: updatedUser, error: updateError } = await supabase
           .from('users')
@@ -67,7 +79,6 @@ async function updateUserInSupabase(user) {
       error = insertError;
       console.log('Insert result:', newUser, insertError);
     }
-
     if (error) throw error;
     console.log('User data updated successfully');
   } catch (error) {
@@ -82,17 +93,15 @@ export const GET = handleAuth({
     try {
       console.log('Handling callback');
       const callbackResponse = await handleCallback(req, res);
-      
+     
       // After handleCallback, we can safely get the session
       const session = await getSession(req, res);
       console.log('Session after callback:', session);
-
       if (session && session.user) {
         await updateUserInSupabase(session.user);
       } else {
         console.error('No session or user data available after callback');
       }
-
       return callbackResponse;
     } catch (error) {
       console.error('Error in callback:', error);
