@@ -24,6 +24,8 @@ export default function TestPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
+  const [enhancedPromptContent, setEnhancedPromptContent] = useState("");
+
 
   const placeholderExamples = [
     'Generate a compound interest calculator',
@@ -145,6 +147,7 @@ export default function TestPage() {
 
     try {
       let finalPrompt = promptContent;
+      let enhancedPrompt = null;
       
       if (enhancePrompt) {
         const enhanceResponse = await fetch('/api/enhancePrompt', {
@@ -155,7 +158,9 @@ export default function TestPage() {
         const enhanceData = await enhanceResponse.json();
         if (enhanceData.enhancedPrompt) {
           finalPrompt = enhanceData.enhancedPrompt;
-          setPromptContent(finalPrompt);
+          enhancedPrompt = enhanceData.enhancedPrompt;
+          setEnhancedPromptContent(finalPrompt);
+          setPromptContent(finalPrompt); // Update the prompt in the text box
         }
       }
   
@@ -187,7 +192,11 @@ export default function TestPage() {
               page: pageName,
               html: htmlData.html,
               javascript: jsData.javascript,
-              auth0Id: user ? user.sub : null  // Send Auth0 ID if user is logged in, null otherwise
+              auth0Id: user ? user.sub : null,
+              model: selectedModel,
+              originalPrompt: promptContent,
+              enhancedPrompt: enhancedPrompt,
+              createdAt: new Date().toISOString()
             }),
           });
           const storeData = await storeResponse.json();
@@ -208,7 +217,6 @@ export default function TestPage() {
       setIsLoading(false);
     }
   };
-
 
   const canUseModel = (model) => {
     if (model === 'FREE_MODEL') return true;

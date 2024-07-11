@@ -4,7 +4,16 @@ import { supabase } from '@/utils/supabase';  // Adjust the import path as neces
 
 export async function POST(request) {
   try {
-    const { page, html, javascript, auth0Id } = await request.json();
+    const { 
+      page, 
+      html, 
+      javascript, 
+      auth0Id, 
+      model, 
+      originalPrompt, 
+      enhancedPrompt, 
+      createdAt 
+    } = await request.json();
    
     let userId = null;
     let isAnonymous = true;
@@ -17,20 +26,13 @@ export async function POST(request) {
         .eq('auth0_id', auth0Id)
         .single();
 
-      if (userError && userError.code !== 'PGRST116') {  // PGRST116 is the error code for no rows returned
-        throw userError;
-      }
-
-      if (!user) {
-        // If user doesn't exist, create a new user entry
-        const { data: newUser, error: createError } = await supabase
-          .from('users')
-          .insert({ auth0_id: auth0Id })
-          .select('id')
-          .single();
-
-        if (createError) throw createError;
-        user = newUser;
+      if (userError) {
+        if (userError.code === 'PGRST116') {  // PGRST116 is the error code for no rows returned
+          // User doesn't exist
+          return NextResponse.json({ message: 'User does not exist' }, { status: 404 });
+        } else {
+          throw userError;
+        }
       }
 
       userId = user.id;
@@ -43,7 +45,11 @@ export async function POST(request) {
       html,
       javascript,
       is_anonymous: isAnonymous,
-      user_id: userId
+      user_id: userId,
+      model_used: model,
+      original_prompt: originalPrompt,
+      enhanced_prompt: enhancedPrompt,
+      created_at: createdAt
     };
 
     // Check if the page already exists
