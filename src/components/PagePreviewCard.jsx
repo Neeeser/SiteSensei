@@ -113,7 +113,7 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
             <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 bg-white dark:bg-gray-800 shadow-md">
               <Image
                 src={getImageSrc(page.users)}
-                alt={page.users.name || 'User'}
+                alt={page.users.nickname || 'User'}
                 width={40}
                 height={40}
                 className="object-cover"
@@ -121,7 +121,7 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
             </div>
             <div className="absolute bottom-full right-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <p className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
-                {page.users.name || 'Anonymous User'}
+                {page.users.nickname || 'Anonymous User'}
               </p>
             </div>
           </div>
