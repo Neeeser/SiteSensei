@@ -1,7 +1,9 @@
+//src/app/api/auth/[auth0]/route.js
 import { handleAuth, handleCallback, getSession } from '@auth0/nextjs-auth0';
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';
 import { v4 as uuidv4 } from 'uuid';
+import bannedNicknames from '../../../../bannedNicknames.json'; // Adjust the path if necessary
 
 async function updateUserInSupabase(user) {
   console.log('Updating user in Supabase:', user);
@@ -20,15 +22,20 @@ async function updateUserInSupabase(user) {
     if (!existingUser) {
       let nickname = user.nickname || null;
       if (nickname) {
-        // Check if the nickname already exists in the database for new users only
-        const { data: existingNickname, error: nicknameError } = await supabase
-          .from('users')
-          .select('nickname')
-          .eq('nickname', nickname)
-          .single();
-        if (!nicknameError && existingNickname) {
-          // If the nickname exists, generate a random UUID as the nickname for new users
+        // Check if the nickname is banned or already exists in the database for new users
+        if (bannedNicknames.includes(nickname)) {
+          console.log('Banned nickname detected, generating random UUID as nickname');
           nickname = uuidv4();
+        } else {
+          const { data: existingNickname, error: nicknameError } = await supabase
+            .from('users')
+            .select('nickname')
+            .eq('nickname', nickname)
+            .single();
+          if (!nicknameError && existingNickname) {
+            // If the nickname exists, generate a random UUID as the nickname for new users
+            nickname = uuidv4();
+          }
         }
       }
 

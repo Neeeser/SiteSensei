@@ -14,7 +14,7 @@ export default function ExplorePage() {
   const [activeView, setActiveView] = useState('new');
   const lastLoadedPage = useRef(0);
   const pageSize = 12;
-  const loadedPageNames = useRef(new Set());
+  const loadedPageUUIDs = useRef(new Set());
   const [userRole, setUserRole] = useState('free');
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function ExplorePage() {
   const fetchPages = useCallback(async () => {
     if (isLoading || !hasMore) return;
     setIsLoading(true);
-  
+
     try {
       let query = supabase
         .from('pages')
@@ -44,7 +44,8 @@ export default function ExplorePage() {
           *,
           users:user_id (
             name,
-            picture
+            picture,
+            nickname
           )
         `, { count: 'exact' })
         .range(lastLoadedPage.current, lastLoadedPage.current + pageSize - 1);
@@ -56,19 +57,19 @@ export default function ExplorePage() {
       }
 
       const { data, error, count } = await query;
-  
+
       if (error) throw error;
-  
-      const uniqueData = data.filter(page => !loadedPageNames.current.has(page.name));
-      uniqueData.forEach(page => loadedPageNames.current.add(page.name));
-  
+
+      const uniqueData = data.filter(page => !loadedPageUUIDs.current.has(page.id));
+      uniqueData.forEach(page => loadedPageUUIDs.current.add(page.id));
+
       if (uniqueData.length > 0) {
         setPages(prevPages => [...prevPages, ...uniqueData]);
         lastLoadedPage.current += uniqueData.length;
       }
-  
+
       setHasMore(lastLoadedPage.current < count);
-  
+
       if (lastLoadedPage.current >= count || uniqueData.length === 0) {
         setHasMore(false);
       }
@@ -84,9 +85,9 @@ export default function ExplorePage() {
     fetchPages();
   }, [fetchPages]);
 
-  const handleDelete = async (pageId) => {
+  const handleDelete = async (pageId, identifier) => {
     try {
-      const response = await fetch(`/api/pages/${pageId}`, {
+      const response = await fetch(`/api/pages/${identifier}/${pageId}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete page');
@@ -96,9 +97,9 @@ export default function ExplorePage() {
     }
   };
 
-  const handleFavorite = async (pageId, isFavorited) => {
+  const handleFavorite = async (pageId, identifier, isFavorited) => {
     try {
-      const response = await fetch(`/api/pages/${pageId}/favorite`, {
+      const response = await fetch(`/api/pages/${identifier}/${pageId}/favorite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -115,13 +116,14 @@ export default function ExplorePage() {
       console.error('Error updating favorite status:', error);
     }
   };
+  
 
   const toggleView = (view) => {
     if (activeView !== view && !isLoading) {
       setIsLoading(true);
       setActiveView(view);
       lastLoadedPage.current = 0;
-      loadedPageNames.current.clear();
+      loadedPageUUIDs.current.clear();
       setPages([]);
       setHasMore(true);
       // Use setTimeout to ensure state updates before fetching new pages

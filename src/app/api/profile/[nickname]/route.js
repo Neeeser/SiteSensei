@@ -22,7 +22,7 @@ export async function GET(request, { params }) {
     // Now, fetch the pages for this user
     const { data: pages, error: pagesError } = await supabase
       .from('pages')
-      .select('id, name, created_at, html, javascript')
+      .select('id, name, created_at, html, javascript, model_used, is_favorited')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -30,13 +30,23 @@ export async function GET(request, { params }) {
       throw pagesError;
     }
 
-    // Combine user data with pages
-    const profileData = {
-      ...user,
-      pages: pages || []
-    };
-
-    return NextResponse.json(profileData);
+    // Attach user data to each page
+    const pagesWithUserData = pages.map(page => ({
+        ...page,
+        users: {
+          id: user.id,
+          name: user.name,
+          nickname: user.nickname,
+          picture: user.picture,
+        }
+      }));
+  
+      const profileData = {
+        ...user,
+        pages: pagesWithUserData
+      };
+  
+      return NextResponse.json(profileData);
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });

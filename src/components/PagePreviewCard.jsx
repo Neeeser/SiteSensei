@@ -26,14 +26,16 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
   const handleDelete = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    onDelete(page.id);
+    onDelete(page.id, page.users ? page.users.nickname : 'anonymous'); // Pass 'anonymous' if the user is anonymous
   };
+  
 
   const handleFavorite = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    onFavorite(page.id, !page.is_favorited);
+    onFavorite(page.id, page.users ? page.users.nickname : 'anonymous', !page.is_favorited); // Pass 'anonymous' if the user is anonymous
   };
+  
 
   const getModelInfo = (model) => {
     switch (model) {
@@ -49,9 +51,11 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
   };
 
   const modelInfo = getModelInfo(page.model_used);
+  console.log(page.users)
+  const linkHref = page.users ? `/page/${page.users.nickname}/${page.name}` : `/page/anon/${page.name}`;
 
   return (
-    <Link href={`/${page.name}`} className="no-underline text-inherit">
+    <Link href={linkHref} className="no-underline text-inherit">
       <motion.div
         whileHover={{ scale: 1.03 }}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-transform duration-300 relative"

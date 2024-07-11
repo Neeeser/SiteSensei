@@ -59,16 +59,23 @@ export default function SettingsPage() {
         if (!value || !/^[a-zA-Z0-9_-]{2,20}$/.test(value)) {
           return 'Nickname must be 2-20 characters and can only contain letters, numbers, underscores, and hyphens';
         }
-        const { data: existingUser, error: existingUserError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('nickname', value)
-          .neq('auth0_id', user?.sub)
-          .single();
-        if (existingUserError && existingUserError.code !== 'PGRST116') {
-          throw existingUserError;
+        try {
+          const response = await fetch('/api/validate-nickname', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ nickname: value }),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            return data.error || 'Error validating nickname';
+          }
+        } catch (error) {
+          console.error('Error validating nickname:', error);
+          return 'Error validating nickname';
         }
-        return existingUser ? 'Nickname already exists' : '';
+        return '';
       case 'phone_number':
         return value && !/^\+?[1-9]\d{1,14}$/.test(value) ? 'Please enter a valid phone number' : '';
       case 'birthdate':

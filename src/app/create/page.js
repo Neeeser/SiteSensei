@@ -16,6 +16,7 @@ export default function TestPage() {
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('FREE_MODEL');
   const [userRole, setUserRole] = useState('free');
+  const [userNickname, setUserNickname] = useState(null);
   const [isPageGenerated, setIsPageGenerated] = useState(false);
   const [previewSize, setPreviewSize] = useState({ width: 500, height: 500 });
   const previewContainerRef = useRef(null);
@@ -104,20 +105,22 @@ export default function TestPage() {
   const [isFormValid, setIsFormValid] = useState(false);
 
   useEffect(() => {
-    const fetchUserRole = async () => {
+    const fetchUserData = async () => {
       if (user) {
         try {
           const response = await fetch('/api/getUserRole');
           const data = await response.json();
           setUserRole(data.role);
+          setUserNickname(data.nickname);
         } catch (error) {
-          console.error('Error fetching user role:', error);
+          console.error('Error fetching user data:', error);
         }
       }
     };
 
-    fetchUserRole();
+    fetchUserData();
   }, [user]);
+
 
   useEffect(() => {
     // Check if both pageName and promptContent are filled
@@ -338,20 +341,17 @@ export default function TestPage() {
               className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6"
             >
               <h2 className="text-xl font-semibold mb-2 text-text-light-primary dark:text-text-dark-primary">View Created Page</h2>
-              <p className="text-text-light-secondary dark:text-text-dark-secondary mb-2">
-                To view your created page, go to: <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">/[page-name]</code>
-              </p>
               <p className="text-text-light-primary dark:text-text-dark-primary">
-                Your page is now available at:{' '}
-                <motion.a 
-                  href={`/${pageName}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-primary hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  /{pageName}
+            Your page is now available at:{' '}
+            <motion.a 
+              href={`page/${userNickname || 'anon'}/${pageName}`}
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-primary hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              page/{userNickname || 'anon'}/{pageName}
                 </motion.a>
               </p>
             </motion.div>

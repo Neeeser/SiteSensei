@@ -96,3 +96,7 @@ html, body {
   -webkit-text-fill-color: transparent;
   animation: glistening 5s ease infinite;
 }
+
+:root {
+  --navbar-height: 64px; /* Adjust this value to match your navbar's actual height */
+}

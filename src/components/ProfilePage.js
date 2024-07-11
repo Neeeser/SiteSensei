@@ -1,5 +1,3 @@
-// components/ProfilePage.js
-
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
@@ -87,6 +85,7 @@ const ProfilePage = ({ nickname }) => {
       </div>
     );
   }
+
   const isOwnProfile = currentUser && currentUser.nickname === nickname;
 
   return (

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
 import { supabase } from '@/utils/supabase';
+import bannedNicknames from '../../../bannedNicknames.json'; // Adjust the path if necessary
 
 // Define the allowed fields for non-admin users
 const allowedFields = ['name', 'nickname', 'phone_number', 'birthdate', 'address'];
@@ -39,6 +40,11 @@ export async function POST(req: Request) {
 
     // Check if the nickname is being updated
     if (updateData.nickname) {
+      // Check if the nickname is banned
+      if (bannedNicknames.includes(updateData.nickname)) {
+        return NextResponse.json({ error: 'Nickname is banned' }, { status: 409 });
+      }
+
       const { data: existingUser, error: existingUserError } = await supabase
         .from('users')
         .select('id')
