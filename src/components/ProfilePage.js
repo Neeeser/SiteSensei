@@ -128,9 +128,14 @@ const ProfilePage = ({ nickname }) => {
             </motion.div>
           </motion.div>
         </div>
-        <h1 className="text-4xl md:text-5xl font-serif mb-8 text-text-light-primary dark:text-text-dark-primary text-shadow">
+        <motion.h1 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.8 }}
+          className="text-4xl md:text-5xl font-serif mb-8 text-text-light-primary dark:text-text-dark-primary text-shadow"
+        >
           {isOwnProfile ? 'My Pages' : `${profileData.name}'s Pages`}
-        </h1>
+        </motion.h1>
         <InfiniteScroll
           dataLength={pages.length}
           next={fetchMorePages}
@@ -144,11 +149,25 @@ const ProfilePage = ({ nickname }) => {
           className="w-full"
           style={{ overflow: 'visible' }}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {pages.map(page => (
-              <PagePreviewCard key={page.id} page={page} />
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          >
+            {pages.map((page, index) => (
+              <motion.div
+                key={page.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: .2 * (index % 12), duration: 0.5 }}
+              >
+                <PagePreviewCard
+                  page={page}
+                />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </InfiniteScroll>
       </motion.div>
     </div>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PreviewComponent from '../../components/PreviewComponent';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { motion } from 'framer-motion';
 
 export default function TestPage() {
   const { user, isLoading: userLoading } = useUser();
@@ -224,11 +225,33 @@ export default function TestPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1 }}
+      className="container mx-auto px-4 py-8"
+    >
       <div className={`max-w-6xl mx-auto ${isSmallScreen ? 'flex flex-col' : 'flex flex-row'} gap-8`}>
-        <div className="flex-1">
-          <h1 className="text-4xl font-bold mb-6 text-text-light-primary dark:text-text-dark-primary">Dynamic Content Generator</h1>
-          <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-8">
+        <motion.div 
+          initial={{ x: -50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.8 }}
+          className="flex-1"
+        >
+          <motion.h1 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="text-4xl font-bold mb-6 text-text-light-primary dark:text-text-dark-primary"
+          >
+            Dynamic Content Generator
+          </motion.h1>
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
+            className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-8"
+          >
             <h2 className="text-2xl font-semibold mb-4 text-text-light-primary dark:text-text-dark-primary">Generate a Webpage with AI</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -267,14 +290,14 @@ export default function TestPage() {
               <div>
                 <label htmlFor="promptContent" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Prompt for Content Generation:</label>
                 <textarea
-  id="promptContent"
-  value={promptContent}
-  onChange={(e) => setPromptContent(e.target.value)}
-  rows={5}
-  required
-  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
-  placeholder={initialLoad || !initialDelayPassed ? "Describe the content you want to generate..." : placeholderText}
-/>
+                  id="promptContent"
+                  value={promptContent}
+                  onChange={(e) => setPromptContent(e.target.value)}
+                  rows={5}
+                  required
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
+                  placeholder={initialLoad || !initialDelayPassed ? "Describe the content you want to generate..." : placeholderText}
+                />
               </div>
               <div className="flex items-center">
                 <input
@@ -286,33 +309,60 @@ export default function TestPage() {
                 />
                 <label htmlFor="enhancePrompt" className="text-text-light-secondary dark:text-text-dark-secondary">Enhance prompt before generation</label>
               </div>
-              
-              <button 
+              <motion.button 
                 type="submit" 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 className={`btn btn-primary w-full ${(!isFormValid || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 disabled={!isFormValid || isLoading}
               >
                 {isLoading ? 'Generating...' : 'Generate Content'}
-              </button>
+              </motion.button>
             </form>
-            {message && <p className="mt-4 text-green-600 dark:text-green-400">{message}</p>}
-          </div>
+            {message && (
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className="mt-4 text-green-600 dark:text-green-400"
+              >
+                {message}
+              </motion.p>
+            )}
+          </motion.div>
           {isPageGenerated && (
-            <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8 }}
+              className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6"
+            >
               <h2 className="text-xl font-semibold mb-2 text-text-light-primary dark:text-text-dark-primary">View Created Page</h2>
               <p className="text-text-light-secondary dark:text-text-dark-secondary mb-2">
                 To view your created page, go to: <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">/[page-name]</code>
               </p>
               <p className="text-text-light-primary dark:text-text-dark-primary">
                 Your page is now available at:{' '}
-                <a href={`/${pageName}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                <motion.a 
+                  href={`/${pageName}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-primary hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
                   /{pageName}
-                </a>
+                </motion.a>
               </p>
-            </div>
+            </motion.div>
           )}
-        </div>
-        <div className="w-full lg:w-1/2">
+        </motion.div>
+        <motion.div 
+          initial={{ x: 50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.8 }}
+          className="w-full lg:w-1/2"
+        >
           <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6" style={{ height: '600px' }}>
             <h2 className="text-xl font-semibold mb-4 text-text-light-primary dark:text-text-dark-primary">Preview</h2>
             <div ref={previewContainerRef} style={{ height: 'calc(100% - 2rem)' }}>
@@ -324,8 +374,8 @@ export default function TestPage() {
               />
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

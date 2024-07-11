@@ -132,16 +132,33 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="min-h-full bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary p-4">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1 }}
+      className="min-h-full bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary p-4"
+    >
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.8 }}
         className="w-full max-w-7xl mx-auto"
       >
-        <h1 className="text-4xl md:text-5xl font-serif mb-8 text-text-light-primary dark:text-text-dark-primary text-shadow">Explore</h1>
+        <motion.h1 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.8 }}
+          className="text-4xl md:text-5xl font-serif mb-8 text-text-light-primary dark:text-text-dark-primary text-shadow"
+        >
+          Explore
+        </motion.h1>
        
-        <div className="flex mb-8 space-x-4">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.8 }}
+          className="flex mb-8 space-x-4"
+        >
           <motion.button
             whileHover={{ scale: isLoading ? 1 : 1.05 }}
             whileTap={{ scale: isLoading ? 1 : 0.95 }}
@@ -160,8 +177,8 @@ export default function ExplorePage() {
           >
             Featured
           </motion.button>
-        </div>
-
+        </motion.div>
+  
         <InfiniteScroll
           dataLength={pages.length}
           next={fetchPages}
@@ -171,19 +188,30 @@ export default function ExplorePage() {
           className="w-full"
           style={{ overflow: 'visible' }}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {pages.map(page => (
-              <PagePreviewCard
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          >
+            {pages.map((page, index) => (
+              <motion.div
                 key={page.id}
-                page={page}
-                userRole={userRole}
-                onDelete={handleDelete}
-                onFavorite={handleFavorite}
-              />
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * (index % 12), duration: 0.5 }}
+              >
+                <PagePreviewCard
+                  page={page}
+                  userRole={userRole}
+                  onDelete={handleDelete}
+                  onFavorite={handleFavorite}
+                />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </InfiniteScroll>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

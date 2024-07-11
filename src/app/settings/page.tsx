@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { supabase } from '@/utils/supabase';
+import { motion } from 'framer-motion';
 
 interface UserData {
   name: string;
@@ -124,15 +125,62 @@ export default function SettingsPage() {
     }
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (!user) return <div>Please log in to access settings.</div>;
+  if (isLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="container mx-auto px-4 py-8 flex items-center justify-center h-screen"
+      >
+        <div className="loading-spinner"></div>
+      </motion.div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="container mx-auto px-4 py-8 flex items-center justify-center h-screen"
+      >
+        <p className="text-xl">Please log in to access settings.</p>
+      </motion.div>
+    );
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">User Settings</h1>
-      <form onSubmit={handleSubmit} className="max-w-md">
-        {Object.entries(userData).map(([key, value]) => (
-          <div key={key} className="mb-4">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1 }}
+      className="container mx-auto px-4 py-8"
+    >
+      <motion.h1
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.8 }}
+        className="text-2xl font-bold mb-4"
+      >
+        User Settings
+      </motion.h1>
+      <motion.form
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.4, duration: 0.8 }}
+        onSubmit={handleSubmit}
+        className="max-w-md"
+      >
+        {Object.entries(userData).map(([key, value], index) => (
+          <motion.div
+            key={key}
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.6 + index * 0.1, duration: 0.5 }}
+            className="mb-4"
+          >
             <label htmlFor={key} className="block text-sm font-medium mb-1">
               {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </label>
@@ -144,18 +192,39 @@ export default function SettingsPage() {
               onChange={handleInputChange}
               className={`w-full px-3 py-2 border rounded-md ${errors[key] ? 'border-red-500' : ''}`}
             />
-            {errors[key] && <p className="text-red-500 text-xs mt-1">{errors[key]}</p>}
-          </div>
+            {errors[key] && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="text-red-500 text-xs mt-1"
+              >
+                {errors[key]}
+              </motion.p>
+            )}
+          </motion.div>
         ))}
-        <button
+        <motion.button
           type="submit"
           disabled={isUpdating || Object.keys(errors).some(key => !!errors[key])}
           className="btn btn-primary"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ duration: 0.2 }}
         >
           {isUpdating ? 'Updating...' : 'Update Profile'}
-        </button>
-        {message && <p className="mt-4 text-sm">{message}</p>}
-      </form>
-    </div>
+        </motion.button>
+        {message && (
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mt-4 text-sm"
+          >
+            {message}
+          </motion.p>
+        )}
+      </motion.form>
+    </motion.div>
   );
 }
