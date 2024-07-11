@@ -90,20 +90,26 @@ export default function DynamicPage({ params }) {
 
   if (error) {
     return (
-      <div className="error-container">
-        <h1>Error</h1>
-        <p>{error}</p>
-        <p>The requested page could not be found.</p>
+      <div className="flex items-center justify-center h-[calc(100vh-var(--navbar-height))] bg-background-light dark:bg-background-dark">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
+          <h1 className="text-2xl font-bold mb-4">Error</h1>
+          <p className="text-red-500 mb-2">{error}</p>
+          <p>The requested page could not be found.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="page-container">
-      <DynamicContent
-        html={content.html}
-        javascript={content.javascript}
-      />
+    <div className="flex flex-col items-center h-[calc(100vh-var(--navbar-height))] bg-background-light dark:bg-background-dark">
+      <div className="w-[97.5%] h-[90%] mt-[1.5%] mb-[0%] bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div className="w-full h-full overflow-auto">
+          <DynamicContent
+            html={content.html}
+            javascript={content.javascript}
+          />
+        </div>
+      </div>
     </div>
   );
 }

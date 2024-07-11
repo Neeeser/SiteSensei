@@ -13,7 +13,7 @@ const DynamicContent = ({ html, javascript, onInteraction }) => {
       iframe.style.border = 'none';
       containerRef.current.innerHTML = '';
       containerRef.current.appendChild(iframe);
-      
+     
       const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
       iframeDoc.open();
       iframeDoc.write(`
@@ -21,7 +21,13 @@ const DynamicContent = ({ html, javascript, onInteraction }) => {
           <head>
             <base target="_parent">
             <style>
-              html, body { height: 100%; margin: 0; padding: 0; }
+              html, body { 
+                height: auto; 
+                min-height: 100%; 
+                margin: 0; 
+                padding: 0; 
+                overflow: visible;
+              }
             </style>
           </head>
           <body>${html}</body>
@@ -74,16 +80,16 @@ const DynamicContent = ({ html, javascript, onInteraction }) => {
   }, [html, javascript, onInteraction]);
 
   return (
-    <div style={{ width: '100%', height: 'calc(100vh - var(--navbar-height))', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       {jsError && (
-        <div style={{ 
-          position: 'fixed', 
-          bottom: '10px', 
-          right: '10px', 
-          background: 'rgba(255, 0, 0, 0.1)', 
-          color: 'red', 
-          padding: '10px', 
+        <div style={{
+          position: 'fixed',
+          bottom: '10px',
+          right: '10px',
+          background: 'rgba(255, 0, 0, 0.1)',
+          color: 'red',
+          padding: '10px',
           borderRadius: '5px',
           fontSize: '12px',
           zIndex: 1000

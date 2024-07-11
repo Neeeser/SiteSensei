@@ -4,7 +4,7 @@ import PreviewComponent from '../../components/PreviewComponent';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { motion } from 'framer-motion';
 
-export default function TestPage() {
+export default function CreatePage() {
   const { user, isLoading: userLoading } = useUser();
   const [pageName, setPageName] = useState('');
   const [htmlContent, setHtmlContent] = useState("");
