@@ -68,3 +68,31 @@ html, body {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+@keyframes glistening {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.glistening-pro {
+  background: linear-gradient(90deg, #3490dc, #38b2ac, #3490dc);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: glistening 5s ease infinite;
+}
+
+.glistening-advanced {
+  background: linear-gradient(90deg, #9f7aea, #ed64a6, #9f7aea);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: glistening 5s ease infinite;
+}

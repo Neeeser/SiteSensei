@@ -35,6 +35,21 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
     onFavorite(page.id, !page.is_favorited);
   };
 
+  const getModelInfo = (model) => {
+    switch (model) {
+      case 'FREE_MODEL':
+        return { name: 'Free Model', className: 'text-gray-500' };
+      case 'PRO_MODEL':
+        return { name: 'Pro Model', className: 'text-blue-500 glistening-pro' };
+      case 'ADVANCED_MODEL':
+        return { name: 'Advanced Model', className: 'text-purple-500 glistening-advanced' };
+      default:
+        return { name: 'Free Model', className: 'text-gray-500' };
+    }
+  };
+
+  const modelInfo = getModelInfo(page.model_used);
+
   return (
     <Link href={`/${page.name}`} className="no-underline text-inherit">
       <motion.div
@@ -77,9 +92,14 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
           </div>
         </div>
         <div className="p-4">
-          <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary mb-2">
-            {new Date(page.created_at).toLocaleDateString()}
-          </p>
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary">
+              {new Date(page.created_at).toLocaleDateString()}
+            </p>
+            <p className={`text-sm font-medium ${modelInfo.className}`}>
+              {modelInfo.name}
+            </p>
+          </div>
           <h3 className="text-xl font-semibold text-text-light-primary dark:text-text-dark-primary">
             {page.name || 'Untitled Page'}
           </h3>
