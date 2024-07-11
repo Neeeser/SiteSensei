@@ -25,6 +25,34 @@ function getApiKey(model) {
   }
 }
 
+
+const systemMessage = {
+  role: "system",
+  content: `You are a helpful assistant that generates JavaScript code to enhance HTML content for a dynamic web application.
+  Follow these guidelines:
+  1. Carefully analyze the provided HTML structure, including element IDs, classes, and existing event handlers.
+  2. Generate JavaScript that is fully compatible with the given HTML structure.
+  3. If the HTML uses inline event handlers (like onclick), use those in your JavaScript instead of adding new event listeners.
+  4. Use modern JavaScript (ES6+) syntax and best practices.
+  5. Ensure the code is compatible with modern browsers.
+  6. Avoid using external libraries unless specifically requested.
+  7. Create self-contained, well-commented JavaScript code.
+  8. Implement the functionality described in the prompt while adhering to the existing HTML structure.
+  9. Format your response exactly as follows:
+     [START_JS]
+     // Your JavaScript code here
+     [END_JS]
+  10. Do not include any explanation or additional text outside of these tags.
+  11. Ensure the code can be placed at the end of the <body> section of the HTML.`
+};
+
+function extractJavaScript(content) {
+  const regex = /\[START_JS\]([\s\S]*?)\[END_JS\]/;
+  const match = content.match(regex);
+  return match ? match[1].trim() : null;
+}
+
+
 export async function POST(request) {
   try {
     const { prompt, html, model } = await request.json();
@@ -36,21 +64,7 @@ export async function POST(request) {
     const completion = await openai.chat.completions.create({
       model: model_name,
       messages: [
-        {
-          role: "system",
-          content: `You are a helpful assistant that generates JavaScript code to enhance HTML content for a dynamic web application.
-          Follow these guidelines:
-          1. Carefully analyze the provided HTML structure, including element IDs, classes, and existing event handlers.
-          2. Generate JavaScript that is fully compatible with the given HTML structure.
-          3. If the HTML uses inline event handlers (like onclick), use those in your JavaScript instead of adding new event listeners.
-          4. Use modern JavaScript (ES6+) syntax and best practices.
-          5. Ensure the code is compatible with modern browsers.
-          6. Avoid using external libraries unless specifically requested.
-          7. Create self-contained, well-commented JavaScript code.
-          8. Implement the functionality described in the prompt while adhering to the existing HTML structure.
-          9. Wrap your code in triple backticks (\`\`\`) without a language specifier.
-          10. Ensure the code can be placed at the end of the <body> section of the HTML.`
-        },
+        systemMessage,
         {
           role: "user",
           content: `HTML: ${html}\n\nPrompt: ${prompt}\n\nGenerate JavaScript code to enhance this HTML based on the prompt, ensuring compatibility with the existing HTML structure.`
@@ -58,20 +72,13 @@ export async function POST(request) {
       ],
       temperature: 0.3,
     });
-
     const generatedContent = completion.choices[0].message.content;
     console.log('Generated content:', generatedContent);
-    function extractJavaScript(content) {
-      const codeMatch = content.match(/```([\s\S]*?)```/);
-      return codeMatch && codeMatch[1] ? codeMatch[1].trim() : null;
-    }
-
+    
     const javascript = extractJavaScript(generatedContent);
-
     if (!javascript) {
       throw new Error('Failed to extract valid JavaScript from the generated content');
     }
-
     return NextResponse.json({
       message: 'JavaScript generated successfully',
       javascript: javascript

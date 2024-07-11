@@ -10,7 +10,6 @@ const openai = new OpenAI({
   }
 });
 
-
 // Function to get the appropriate API key based on the model
 function getApiKey(model) {
   switch (model) {
@@ -25,6 +24,19 @@ function getApiKey(model) {
   }
 }
 
+// Improved function to extract HTML from the generated content
+function extractHTML(content) {
+  // This regex will match [START_HTML] ... [END_HTML] or [START_HTML] ... [/END_HTML]
+  const regex = /\[START_HTML\]([\s\S]*?)\[(?:\/)?END_HTML\]/;
+  const match = content.match(regex);
+  if (match) {
+    return match[1].trim();
+  } else {
+    // Fallback: try to extract the entire HTML document
+    const htmlMatch = content.match(/<html[^>]*>[\s\S]*<\/html>/i);
+    return htmlMatch ? htmlMatch[0].trim() : null;
+  }
+}
 
 export async function POST(request) {
   try {
@@ -32,7 +44,7 @@ export async function POST(request) {
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
-    
+   
     const model_name = getApiKey(model);
     console.log('Using model:', model_name);
     const completion = await openai.chat.completions.create({
@@ -47,9 +59,17 @@ export async function POST(request) {
           3. Ensure content works with flexible dimensions using viewport units or percentages.
           4. Avoid external resources unless absolutely necessary.
           5. Write code compatible with modern browsers.
-          6. Provide the entire HTML document as a single string, with proper escaping for nested quotes.
-          7. Do not include any <script> tags or JavaScript code placeholders.
-          8. For interactive elements, use appropriate attributes (like onclick) without including actual JavaScript code.`
+          6. Do not include any <script> tags or JavaScript code.
+          7. For interactive elements, use appropriate attributes (like onclick) without including actual JavaScript code.
+          8. Format your response exactly as follows:
+             [START_HTML]
+             <!DOCTYPE html>
+             <html>
+             ...your complete HTML code here...
+             </html>
+             [END_HTML]
+          9. Do not include any explanation or additional text outside of these tags.
+          10. Make sure to use [END_HTML] (not [/END_HTML]) as the closing tag.`
         },
         {
           role: "user",
@@ -59,15 +79,10 @@ export async function POST(request) {
       temperature: 0.3,
     });
 
-    let generatedContent = completion.choices[0].message.content;
+    const generatedContent = completion.choices[0].message.content;
     console.log('Generated content:', generatedContent);
-    // Remove any script tags if they still appear in the generated HTML
-    generatedContent = generatedContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 
-    // Extract HTML using regex
-    const htmlMatch = generatedContent.match(/<html[^>]*>[\s\S]*<\/html>/i);
-    const html = htmlMatch ? htmlMatch[0] : '';
-
+    const html = extractHTML(generatedContent);
     if (!html) {
       throw new Error('Failed to extract valid HTML from the generated content');
     }
