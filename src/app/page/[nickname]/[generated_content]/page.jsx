@@ -80,6 +80,24 @@ export default function DynamicPage({ params }) {
     fetchContent();
   }, [nickname, generated_content]);
 
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(`/api/download?nickname=${nickname}&pageName=${generated_content}`);
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `${generated_content}.html`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="loading-container">
@@ -110,6 +128,12 @@ export default function DynamicPage({ params }) {
           />
         </div>
       </div>
+      <button
+        onClick={handleDownload}
+        className="mt-4 mb-4 btn btn-primary"
+      >
+        Download Page
+      </button>
     </div>
   );
 }
