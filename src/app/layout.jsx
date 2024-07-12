@@ -1,5 +1,6 @@
 import { UserProvider } from '@auth0/nextjs-auth0/client';
 import { ThemeProvider } from 'next-themes';
+import { Analytics } from "@vercel/analytics/react";
 import Navbar from '../components/Navbar';
 import './globals.css';
 
@@ -18,6 +19,7 @@ export default function RootLayout({ children }) {
             <main className="flex-grow overflow-auto">
               {children}
             </main>
+            <Analytics />
           </body>
         </ThemeProvider>
       </UserProvider>
