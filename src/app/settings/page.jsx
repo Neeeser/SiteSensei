@@ -1,31 +1,13 @@
 'use client';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { supabase } from '@/utils/supabase';
 import { motion } from 'framer-motion';
-
-interface UserData {
-  name: string;
-  nickname: string;
-  phone_number: string | null;
-  birthdate: string | null;
-  address: string | null;
-}
-
-interface ValidationErrors {
-  [key: string]: string;
-}
 
 export default function SettingsPage() {
   const { user, isLoading } = useUser();
-  const [userData, setUserData] = useState<UserData>({
-    name: '',
-    nickname: '',
-    phone_number: null,
-    birthdate: null,
-    address: null,
-  });
-  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [userData, setUserData] = useState(null);
+  const [originalNickname, setOriginalNickname] = useState('');
+  const [errors, setErrors] = useState({});
   const [isUpdating, setIsUpdating] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -37,25 +19,26 @@ export default function SettingsPage() {
 
   const fetchUserData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('name, nickname, phone_number, birthdate, address')
-        .eq('auth0_id', user?.sub)
-        .single();
-      if (error) throw error;
-      if (data) {
-        setUserData(data);
+      const response = await fetch('/api/user');
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
       }
+      const data = await response.json();
+      setUserData(data);
+      setOriginalNickname(data.nickname);
     } catch (error) {
       console.error('Error fetching user data:', error);
     }
   };
 
-  const validateField = async (name: string, value: string | null): Promise<string> => {
+  const validateField = async (name, value) => {
     switch (name) {
       case 'name':
         return value && value.trim().length < 2 ? 'Name must be at least 2 characters long' : '';
       case 'nickname':
+        if (value === originalNickname) {
+          return ''; // No need to validate if it's the original nickname
+        }
         if (!value || !/^[a-zA-Z0-9_-]{2,20}$/.test(value)) {
           return 'Nickname must be 2-20 characters and can only contain letters, numbers, underscores, and hyphens';
         }
@@ -92,19 +75,23 @@ export default function SettingsPage() {
     }
   };
 
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = async (e) => {
     const { name, value } = e.target;
-    setUserData(prev => ({ ...prev, [name]: value }));
+    setUserData(prev => prev ? { ...prev, [name]: value } : null);
     const error = await validateField(name, value);
     setErrors(prev => ({ ...prev, [name]: error }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const newErrors: ValidationErrors = {};
+    if (!userData) return;
+
+    const newErrors = {};
     for (const [key, value] of Object.entries(userData)) {
-      const error = await validateField(key, value);
-      if (error) newErrors[key] = error;
+      if (key !== 'id') {
+        const error = await validateField(key, value);
+        if (error) newErrors[key] = error;
+      }
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -115,15 +102,19 @@ export default function SettingsPage() {
     setIsUpdating(true);
     setMessage('');
     try {
-      const response = await fetch('/api/update-user', {
+      const response = await fetch('/api/user/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(userData),
       });
-      if (!response.ok) throw new Error('Failed to update user');
+      if (!response.ok) {
+        throw new Error('Failed to update user');
+      }
       setMessage('Profile updated successfully!');
+      // Update the original nickname if it was changed
+      setOriginalNickname(userData.nickname);
     } catch (error) {
       console.error('Error updating user:', error);
       setMessage('Failed to update profile. Please try again.');
@@ -145,7 +136,7 @@ export default function SettingsPage() {
     );
   }
 
-  if (!user) {
+  if (!user || !userData) {
     return (
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -180,37 +171,40 @@ export default function SettingsPage() {
         onSubmit={handleSubmit}
         className="max-w-md"
       >
-        {Object.entries(userData).map(([key, value], index) => (
-          <motion.div
-            key={key}
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.6 + index * 0.1, duration: 0.5 }}
-            className="mb-4"
-          >
-            <label htmlFor={key} className="block text-sm font-medium mb-1">
-              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-            </label>
-            <input
-              type={key === 'birthdate' ? 'date' : key === 'phone_number' ? 'tel' : 'text'}
-              id={key}
-              name={key}
-              value={value || ''}
-              onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-md ${errors[key] ? 'border-red-500' : ''}`}
-            />
-            {errors[key] && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-                className="text-red-500 text-xs mt-1"
-              >
-                {errors[key]}
-              </motion.p>
-            )}
-          </motion.div>
-        ))}
+        {userData && Object.entries(userData).map(([key, value], index) => {
+          if (key === 'id') return null; // Don't render the id field
+          return (
+            <motion.div
+              key={key}
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.6 + index * 0.1, duration: 0.5 }}
+              className="mb-4"
+            >
+              <label htmlFor={key} className="block text-sm font-medium mb-1">
+                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </label>
+              <input
+                type={key === 'birthdate' ? 'date' : key === 'phone_number' ? 'tel' : 'text'}
+                id={key}
+                name={key}
+                value={value || ''}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-md ${errors[key] ? 'border-red-500' : ''}`}
+              />
+              {errors[key] && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-red-500 text-xs mt-1"
+                >
+                  {errors[key]}
+                </motion.p>
+              )}
+            </motion.div>
+          );
+        })}
         <motion.button
           type="submit"
           disabled={isUpdating || Object.keys(errors).some(key => !!errors[key])}

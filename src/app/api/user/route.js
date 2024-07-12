@@ -9,19 +9,15 @@ export async function GET(req) {
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, name, nickname')
+      .select('id, name, nickname, phone_number, birthdate, address')
       .eq('auth0_id', session.user.sub)
       .single();
-
     if (error) throw error;
-
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
     return NextResponse.json(user);
   } catch (error) {
     console.error('Error fetching user data:', error);

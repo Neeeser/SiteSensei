@@ -1,9 +1,8 @@
-// src/app/page/[nicknmae]/[generated_content]/page.jsx
+// src/app/page/[nickname]/[generated_content]/page.jsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/utils/supabase';
 import DynamicContent from '@/components/DynamicContent';
 
 export default function DynamicPage({ params }) {
@@ -24,51 +23,14 @@ export default function DynamicPage({ params }) {
           throw new Error('Missing nickname or page name');
         }
 
-        let pageQuery;
-
-        if (nickname === 'anon') {
-          // Fetch anonymous pages
-          pageQuery = supabase
-            .from('pages')
-            .select('html, javascript')
-            .eq('is_anonymous', true)
-            .eq('name', generated_content)
-            .single();
-        } else {
-          // First, get the user_id for the given nickname
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('id')
-            .eq('nickname', nickname)
-            .single();
-
-          if (userError) {
-            console.error('User fetch error:', userError);
-            throw new Error('User not found');
-          }
-
-          console.log('User data:', userData);
-
-          // Now fetch the page content using the user_id and generated_content name
-          pageQuery = supabase
-            .from('pages')
-            .select('html, javascript')
-            .eq('user_id', userData.id)
-            .eq('name', generated_content)
-            .single();
+        const response = await fetch(`/api/content?nickname=${nickname}&pageName=${generated_content}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        const { data, error } = await pageQuery;
+        const data = await response.json();
 
         console.log('Page data:', data);
-
-        if (error) {
-          console.error('Page fetch error:', error);
-          throw new Error('Page not found');
-        } else {
-          console.log('Existing content found:', data);
-          setContent(data);
-        }
+        setContent(data);
       } catch (error) {
         console.error('Error fetching content:', error);
         setError(error.message);
