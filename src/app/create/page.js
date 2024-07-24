@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PreviewComponent from '../../components/PreviewComponent';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import EditChatbox from '../../components/EditChatbox';
 
 export default function CreatePage() {
   const { user, isLoading: userLoading } = useUser();
@@ -28,7 +29,10 @@ export default function CreatePage() {
   const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
   const [enhancedPromptContent, setEnhancedPromptContent] = useState("");
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [showEditChat, setShowEditChat] = useState(false);
+  const [editMessage, setEditMessage] = useState('');
 
+  
   const placeholderExamples = [
     'Generate a compound interest calculator',
     'Create a resume website',
@@ -120,6 +124,13 @@ export default function CreatePage() {
 
     fetchUserData();
   }, [user]);
+
+
+  const handleEditSubmit = (editedHtml, editedJavascript) => {
+    setHtmlContent(editedHtml);
+    setJsContent(editedJavascript);
+    setMessage('Content updated successfully');
+  };
 
 
   useEffect(() => {
@@ -279,61 +290,61 @@ export default function CreatePage() {
                 </div>
               </div>
               <div>
-              <label htmlFor="promptContent" className="block text-text-light-primary dark:text-text-dark-primary mb-2"> Prompt:</label>
-              <textarea
-                id="promptContent"
-                value={promptContent}
-                onChange={(e) => setPromptContent(e.target.value)}
-                rows={5}
-                required
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
-                placeholder={initialLoad || !initialDelayPassed ? "Describe the content you want to generate..." : placeholderText}
-              />
-            </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="enhancePrompt"
-                checked={enhancePrompt}
-                onChange={(e) => setEnhancePrompt(e.target.checked)}
-                className="mr-2"
-              />
-              <label htmlFor="enhancePrompt" className="text-text-light-secondary dark:text-text-dark-secondary">Enhance prompt before generation</label>
-            </div>
-            <AnimatePresence>
-              {enhancePrompt && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <label htmlFor="enhancedPrompt" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Enhanced Prompt:</label>
+                <label htmlFor="promptContent" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Prompt:</label>
+                <textarea
+                  id="promptContent"
+                  value={promptContent}
+                  onChange={(e) => setPromptContent(e.target.value)}
+                  rows={5}
+                  required
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
+                  placeholder={initialLoad || !initialDelayPassed ? "Describe the content you want to generate..." : placeholderText}
+                />
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="enhancePrompt"
+                  checked={enhancePrompt}
+                  onChange={(e) => setEnhancePrompt(e.target.checked)}
+                  className="mr-2"
+                />
+                <label htmlFor="enhancePrompt" className="text-text-light-secondary dark:text-text-dark-secondary">Enhance prompt before generation</label>
+              </div>
+              <AnimatePresence>
+                {enhancePrompt && (
                   <motion.div
-                    animate={isEnhancing ? { opacity: [1, 0.5, 1] } : { opacity: 1 }}
-                    transition={isEnhancing ? { duration: 1, repeat: Infinity } : {}}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <textarea
-                      id="enhancedPrompt"
-                      value={enhancedPromptContent}
-                      readOnly
-                      rows={5}
-                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
-                      placeholder={isEnhancing ? "Enhancing prompt..." : "Enhanced prompt will appear here"}
-                    />
+                    <label htmlFor="enhancedPrompt" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Enhanced Prompt:</label>
+                    <motion.div
+                      animate={isEnhancing ? { opacity: [1, 0.5, 1] } : { opacity: 1 }}
+                      transition={isEnhancing ? { duration: 1, repeat: Infinity } : {}}
+                    >
+                      <textarea
+                        id="enhancedPrompt"
+                        value={enhancedPromptContent}
+                        readOnly
+                        rows={5}
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
+                        placeholder={isEnhancing ? "Enhancing prompt..." : "Enhanced prompt will appear here"}
+                      />
+                    </motion.div>
                   </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <motion.button 
-              type="submit" 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`btn btn-primary w-full ${(!isFormValid || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={!isFormValid || isLoading}
-            >
-              {isLoading ? 'Generating...' : 'Generate Content'}
-            </motion.button>
+                )}
+              </AnimatePresence>
+              <motion.button 
+                type="submit" 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`btn btn-primary w-full ${(!isFormValid || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!isFormValid || isLoading}
+              >
+                {isLoading ? 'Generating...' : 'Generate Content'}
+              </motion.button>
             </form>
             {message && (
               <motion.p 
@@ -355,21 +366,22 @@ export default function CreatePage() {
             >
               <h2 className="text-xl font-semibold mb-2 text-text-light-primary dark:text-text-dark-primary">View Created Page</h2>
               <p className="text-text-light-primary dark:text-text-dark-primary">
-            Your page is now available at:{' '}
-            <motion.a 
-              href={`page/${userNickname || 'anon'}/${pageName}`}
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-primary hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              page/{userNickname || 'anon'}/{pageName}
+                Your page is now available at:{' '}
+                <motion.a 
+                  href={`page/${userNickname || 'anon'}/${pageName}`}
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-primary hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  page/{userNickname || 'anon'}/{pageName}
                 </motion.a>
               </p>
             </motion.div>
           )}
         </motion.div>
+
         <motion.div 
           initial={{ x: 50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -387,6 +399,21 @@ export default function CreatePage() {
               />
             </div>
           </div>
+          
+
+         {/* New Edit Chatbox Component */}
+         <EditChatbox
+  isVisible={isPageGenerated}
+  onSubmit={handleEditSubmit}
+  className="mt-6"
+  currentHtml={htmlContent}
+  currentJavascript={jsContent}
+  selectedModel={selectedModel}
+  pageName={pageName}
+  auth0Id={user ? user.sub : null}
+  userNickname={userNickname}
+/>
+
         </motion.div>
       </div>
     </motion.div>
