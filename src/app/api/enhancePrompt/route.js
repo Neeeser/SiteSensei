@@ -45,7 +45,8 @@ ${prompt}
       temperature: 0.3,
     });
 
-    const enhancedPrompt = completion.choices[0].message.content;
+    const enhancedPrompt = completion.choices[0].message.content.trim();
+    
     
     return NextResponse.json({
       message: 'Prompt enhanced successfully',

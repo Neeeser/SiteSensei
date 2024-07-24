@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PreviewComponent from '../../components/PreviewComponent';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CreatePage() {
   const { user, isLoading: userLoading } = useUser();
@@ -27,7 +27,7 @@ export default function CreatePage() {
   const [isPaused, setIsPaused] = useState(false);
   const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
   const [enhancedPromptContent, setEnhancedPromptContent] = useState("");
-
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   const placeholderExamples = [
     'Generate a compound interest calculator',
@@ -154,6 +154,7 @@ export default function CreatePage() {
       let enhancedPrompt = null;
       
       if (enhancePrompt) {
+        setIsEnhancing(true);
         const enhanceResponse = await fetch('/api/enhancePrompt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -164,64 +165,51 @@ export default function CreatePage() {
           finalPrompt = enhanceData.enhancedPrompt;
           enhancedPrompt = enhanceData.enhancedPrompt;
           setEnhancedPromptContent(finalPrompt);
-          setPromptContent(finalPrompt); // Update the prompt in the text box
         }
+        setIsEnhancing(false);
       }
-  
-      const htmlResponse = await fetch('/api/generate/html', {
+      const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: finalPrompt, model: selectedModel }),
       });
-      const htmlData = await htmlResponse.json();
+      const data = await response.json();
       
-      if (htmlData.html) {
-        setHtmlContent(htmlData.html);
-
-        const jsResponse = await fetch('/api/generate/javascript', {
+      if (data.html && data.javascript) {
+        setHtmlContent(data.html);
+        setJsContent(data.javascript);
+        setMessage('Content generated successfully');
+        
+        const storeResponse = await fetch('/api/update-content', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: finalPrompt, html: htmlData.html, model: selectedModel }),
+          body: JSON.stringify({
+            page: pageName,
+            html: data.html,
+            javascript: data.javascript,
+            auth0Id: user ? user.sub : null,
+            model: selectedModel,
+            originalPrompt: promptContent,
+            enhancedPrompt: enhancedPrompt,
+            createdAt: new Date().toISOString()
+          }),
         });
-        const jsData = await jsResponse.json();
-
-        if (jsData.javascript) {
-          setJsContent(jsData.javascript);
-          setMessage('Content generated successfully');
-          
-          const storeResponse = await fetch('/api/update-content', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              page: pageName,
-              html: htmlData.html,
-              javascript: jsData.javascript,
-              auth0Id: user ? user.sub : null,
-              model: selectedModel,
-              originalPrompt: promptContent,
-              enhancedPrompt: enhancedPrompt,
-              createdAt: new Date().toISOString()
-            }),
-          });
-          const storeData = await storeResponse.json();
-          if (storeData.message) {
-            setMessage(prevMessage => `${prevMessage}. ${storeData.message}`);
-          }
-          setIsPageGenerated(true);
-        } else if (jsData.error) {
-          throw new Error(jsData.error);
+        const storeData = await storeResponse.json();
+        if (storeData.message) {
+          setMessage(prevMessage => `${prevMessage}. ${storeData.message}`);
         }
-      } else if (htmlData.error) {
-        throw new Error(htmlData.error);
+        setIsPageGenerated(true);
+      } else if (data.error) {
+        throw new Error(data.error);
       }
     } catch (error) {
       console.error('Error:', error);
       setMessage(error.message || 'Error generating content');
+      setIsEnhancing(false);
     } finally {
       setIsLoading(false);
     }
   };
-
   const canUseModel = (model) => {
     if (model === 'FREE_MODEL') return true;
     return userRole === 'admin' || userRole === 'paid';
@@ -291,36 +279,61 @@ export default function CreatePage() {
                 </div>
               </div>
               <div>
-                <label htmlFor="promptContent" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Prompt for Content Generation:</label>
-                <textarea
-                  id="promptContent"
-                  value={promptContent}
-                  onChange={(e) => setPromptContent(e.target.value)}
-                  rows={5}
-                  required
-                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
-                  placeholder={initialLoad || !initialDelayPassed ? "Describe the content you want to generate..." : placeholderText}
-                />
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="enhancePrompt"
-                  checked={enhancePrompt}
-                  onChange={(e) => setEnhancePrompt(e.target.checked)}
-                  className="mr-2"
-                />
-                <label htmlFor="enhancePrompt" className="text-text-light-secondary dark:text-text-dark-secondary">Enhance prompt before generation</label>
-              </div>
-              <motion.button 
-                type="submit" 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`btn btn-primary w-full ${(!isFormValid || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={!isFormValid || isLoading}
-              >
-                {isLoading ? 'Generating...' : 'Generate Content'}
-              </motion.button>
+              <label htmlFor="promptContent" className="block text-text-light-primary dark:text-text-dark-primary mb-2"> Prompt:</label>
+              <textarea
+                id="promptContent"
+                value={promptContent}
+                onChange={(e) => setPromptContent(e.target.value)}
+                rows={5}
+                required
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
+                placeholder={initialLoad || !initialDelayPassed ? "Describe the content you want to generate..." : placeholderText}
+              />
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="enhancePrompt"
+                checked={enhancePrompt}
+                onChange={(e) => setEnhancePrompt(e.target.checked)}
+                className="mr-2"
+              />
+              <label htmlFor="enhancePrompt" className="text-text-light-secondary dark:text-text-dark-secondary">Enhance prompt before generation</label>
+            </div>
+            <AnimatePresence>
+              {enhancePrompt && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <label htmlFor="enhancedPrompt" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Enhanced Prompt:</label>
+                  <motion.div
+                    animate={isEnhancing ? { opacity: [1, 0.5, 1] } : { opacity: 1 }}
+                    transition={isEnhancing ? { duration: 1, repeat: Infinity } : {}}
+                  >
+                    <textarea
+                      id="enhancedPrompt"
+                      value={enhancedPromptContent}
+                      readOnly
+                      rows={5}
+                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
+                      placeholder={isEnhancing ? "Enhancing prompt..." : "Enhanced prompt will appear here"}
+                    />
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <motion.button 
+              type="submit" 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`btn btn-primary w-full ${(!isFormValid || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!isFormValid || isLoading}
+            >
+              {isLoading ? 'Generating...' : 'Generate Content'}
+            </motion.button>
             </form>
             {message && (
               <motion.p 
