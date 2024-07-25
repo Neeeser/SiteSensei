@@ -50,7 +50,8 @@ const Navbar = () => {
   const userNickname = dbUser?.nickname || dbUser?.name?.replace(/\s+/g, '-').toLowerCase();
 
   return (
-<nav className="bg-white dark:bg-gray-800 shadow-md h-[var(--navbar-height)]">      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="bg-white dark:bg-gray-800 shadow-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Image
@@ -127,50 +128,49 @@ const Navbar = () => {
         </div>
       </div>
 
-      {isOpen && (
-        <div className="md:hidden" id="mobile-menu">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link href="/" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary block px-3 py-2 rounded-md text-base font-medium">Home</Link>
-            <Link href="/create" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary block px-3 py-2 rounded-md text-base font-medium">Create</Link>
-            <Link href="/explore" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary block px-3 py-2 rounded-md text-base font-medium">Explore</Link>
-            <Link href="/pricing" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary block px-3 py-2 rounded-md text-base font-medium">Pricing</Link>
-          </div>
-          {user ? (
-            <div className="pt-4 pb-3 border-t border-gray-700">
-              <div className="flex items-center px-5">
-                <div className="flex-shrink-0">
-                  <img
-                    className="h-10 w-10 rounded-full"
-                    src={user.picture || "/api/placeholder/40/40"}
-                    alt={dbUser?.name || "User profile"}
-                  />
-                </div>
-                <div className="ml-3">
-                  <div className="text-base font-medium text-text-light-primary dark:text-text-dark-primary">{dbUser?.name}</div>
-                  <div className="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">{user.email}</div>
-                </div>
-                <button
-                  onClick={toggleDarkMode}
-                  className="ml-auto flex-shrink-0 p-1 rounded-full text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
-                >
-                  {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
-                </button>
-              </div>
-              <div className="mt-3 px-2 space-y-1">
-                <Link href={`/profile/${userNickname}`} className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary hover:bg-gray-700">Your Profile</Link>
-                <Link href="/settings" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary hover:bg-gray-700">Settings</Link>
-                <Link href="/api/auth/logout" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary hover:bg-gray-700">Logout</Link>
-              </div>
-            </div>
-          ) : (
-            <div className="pt-4 pb-3 border-t border-gray-700">
-              <div className="px-2 space-y-1">
-                <Link href="/api/auth/login" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary hover:bg-gray-700">Login</Link>
-              </div>
-            </div>
-          )}
+      {/* Mobile menu */}
+      <div className={`md:hidden ${isOpen ? 'block' : 'hidden'}`} id="mobile-menu">
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white dark:bg-gray-800">
+          <Link href="/" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Home</Link>
+          <Link href="/create" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Create</Link>
+          <Link href="/explore" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Explore</Link>
+          <Link href="/pricing" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Pricing</Link>
         </div>
-      )}
+        {user ? (
+          <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center px-5">
+              <div className="flex-shrink-0">
+                <img
+                  className="h-10 w-10 rounded-full"
+                  src={user.picture || "/api/placeholder/40/40"}
+                  alt={dbUser?.name || "User profile"}
+                />
+              </div>
+              <div className="ml-3">
+                <div className="text-base font-medium text-text-light-primary dark:text-text-dark-primary">{dbUser?.name}</div>
+                <div className="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">{user.email}</div>
+              </div>
+              <button
+                onClick={toggleDarkMode}
+                className="ml-auto flex-shrink-0 p-1 rounded-full text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
+              >
+                {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+              </button>
+            </div>
+            <div className="mt-3 px-2 space-y-1">
+              <Link href={`/profile/${userNickname}`} className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Your Profile</Link>
+              <Link href="/settings" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Settings</Link>
+              <Link href="/api/auth/logout" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Logout</Link>
+            </div>
+          </div>
+        ) : (
+          <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="px-2 space-y-1">
+              <Link href="/api/auth/login" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Login</Link>
+            </div>
+          </div>
+        )}
+      </div>
     </nav>
   );
 };
