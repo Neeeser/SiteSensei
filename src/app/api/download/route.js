@@ -1,3 +1,4 @@
+// api/download/route.js
 import { supabase } from '@/utils/supabase';
 import { NextResponse } from 'next/server';
 
@@ -5,22 +6,24 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const nickname = searchParams.get('nickname');
   const pageName = searchParams.get('pageName');
+  const revisionId = searchParams.get('revisionId'); // Optional parameter for revision ID
 
   if (!nickname || !pageName) {
     return NextResponse.json({ error: 'Missing nickname or page name' }, { status: 400 });
   }
 
   try {
-    let pageQuery;
+    let contentQuery;
 
-    if (nickname === 'anon') {
-      pageQuery = supabase
-        .from('pages')
+    if (revisionId) {
+      // Fetch specific revision content if revisionId is provided
+      contentQuery = supabase
+        .from('page_revisions')
         .select('html, javascript')
-        .eq('is_anonymous', true)
-        .eq('name', pageName)
+        .eq('id', revisionId)
         .single();
     } else {
+      // Fetch the current page content if no revisionId is specified
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id')
@@ -31,7 +34,7 @@ export async function GET(request) {
         throw new Error('User not found');
       }
 
-      pageQuery = supabase
+      contentQuery = supabase
         .from('pages')
         .select('html, javascript')
         .eq('user_id', userData.id)
@@ -39,7 +42,7 @@ export async function GET(request) {
         .single();
     }
 
-    const { data, error } = await pageQuery;
+    const { data, error } = await contentQuery;
 
     if (error) {
       throw new Error('Page not found');
@@ -67,7 +70,7 @@ ${javascript}
       status: 200,
       headers: {
         'Content-Type': 'text/html',
-        'Content-Disposition': `attachment; filename=${pageName}.html`,
+        'Content-Disposition': `attachment; filename="${pageName}.html"`,
       },
     });
   } catch (error) {

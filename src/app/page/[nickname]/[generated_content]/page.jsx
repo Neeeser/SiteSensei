@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import DynamicContent from '@/components/DynamicContent';
 import Sidebar from '@/components/Sidebar';
 import EditChatbox from '@/components/EditChatbox';
@@ -110,6 +111,23 @@ export default function DynamicPage({ params }) {
     }
   };
 
+  const handleDownload = () => {
+    const baseUrl = '/api/download'; // Adjust if your endpoint base URL differs
+    // Determine if a specific revision is being viewed
+    const revisionId = currentRevisionIndex > 0 ? revisions[currentRevisionIndex].id : null;
+    const queryParams = `?nickname=${encodeURIComponent(nickname)}&pageName=${encodeURIComponent(generated_content)}${revisionId ? `&revisionId=${revisionId}` : ''}`;
+    const downloadUrl = `${baseUrl}${queryParams}`;
+  
+    // Create a temporary anchor tag to initiate download
+    const anchor = document.createElement('a');
+    anchor.href = downloadUrl;
+    anchor.setAttribute('download', ''); // You can specify a filename here if needed
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  };
+  
+
   if (isLoading) {
     return (
       <div className="loading-container">
@@ -132,83 +150,93 @@ export default function DynamicPage({ params }) {
 
   return (
     <div className="flex flex-col items-center h-[calc(100vh-var(--navbar-height))] bg-background-light dark:bg-background-dark">
-      <div className="w-[97.5%] h-[90%] mt-[1.5%] mb-[0%] bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden relative">
+      <div className="w-[97.5%] h-[90%] mt-[1.5%] mb-[1%] bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden relative">
         <div className="w-full h-full overflow-auto">
           <DynamicContent
             html={content.html}
             javascript={content.javascript}
           />
         </div>
-        {revisionError && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-red-500">
-            Error loading revisions: {revisionError}
-          </div>
-        )}
-        {!revisionError && revisions.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-4">
-            <button
-              onClick={() => navigateRevision(1)}
-              disabled={currentRevisionIndex === revisions.length - 1}
-              className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft size={24} />
-            </button>
-            <span className="text-text-light-secondary dark:text-text-dark-secondary">
-              Revision {currentRevisionIndex + 1} of {revisions.length}
-            </span>
-            <button
-              onClick={() => navigateRevision(-1)}
-              disabled={currentRevisionIndex === 0}
-              className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronRight size={24} />
-            </button>
-          </div>
-        )}
         {isCreator && (
-          <>
-            <button
-              onClick={toggleSidebar}
-              className="absolute top-4 right-4 bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200"
-            >
-              <Menu size={24} />
-            </button>
-            <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar}>
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2 text-text-light-primary dark:text-text-dark-primary">Select Model</h3>
-                <div className="flex flex-col gap-2">
-                  {['FREE_MODEL', 'PRO_MODEL', 'ADVANCED_MODEL'].map((model) => (
-                    <label key={model} className={`flex items-center ${!canUseModel(model) ? 'opacity-50' : ''}`}>
-                      <input
-                        type="radio"
-                        name="model"
-                        value={model}
-                        checked={selectedModel === model}
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                        disabled={!canUseModel(model)}
-                        className="mr-2"
-                      />
-                      <span className="text-text-light-secondary dark:text-text-dark-secondary">
-                        {model.split('_')[0].toLowerCase()}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <EditChatbox
-                isVisible={true}
-                onSubmit={handleEditSubmit}
-                currentHtml={content.html}
-                currentJavascript={content.javascript}
-                selectedModel={selectedModel}
-                pageName={generated_content}
-                auth0Id={user ? user.sub : null}
-                userNickname={nickname}
-              />
-            </Sidebar>
-          </>
+          <button
+            onClick={toggleSidebar}
+            className="absolute top-4 right-4 bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200"
+          >
+            <Menu size={24} />
+          </button>
         )}
       </div>
-    </div>
-  );
+      {revisionError && (
+        <div className="mt-2 text-center text-red-500">
+          Error loading revisions: {revisionError}
+        </div>
+      )}
+      {!revisionError && revisions.length > 1 && (
+        <div className="mt-2 flex items-center justify-center space-x-4">
+          <button
+            onClick={() => navigateRevision(1)}
+            disabled={currentRevisionIndex === revisions.length - 1}
+            className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <span className="text-text-light-secondary dark:text-text-dark-secondary">
+            Revision {currentRevisionIndex + 1} of {revisions.length}
+          </span>
+          <button
+            onClick={() => navigateRevision(-1)}
+            disabled={currentRevisionIndex === 0}
+            className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronRight size={24} />
+          </button>
+        </div>
+      )}
+      {isCreator && (
+        <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar}>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-2 text-text-light-primary dark:text-text-dark-primary">Select Model</h3>
+          <div className="flex flex-col gap-2">
+            {['FREE_MODEL', 'PRO_MODEL', 'ADVANCED_MODEL'].map((model) => (
+              <label key={model} className={`flex items-center ${!canUseModel(model) ? 'opacity-50' : ''}`}>
+                <input
+                  type="radio"
+                  name="model"
+                  value={model}
+                  checked={selectedModel === model}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  disabled={!canUseModel(model)}
+                  className="mr-2"
+                />
+                <span className="text-text-light-secondary dark:text-text-dark-secondary">
+                  {model.split('_')[0].toLowerCase()}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <EditChatbox
+          isVisible={true}
+          onSubmit={handleEditSubmit}
+          currentHtml={content.html}
+          currentJavascript={content.javascript}
+          selectedModel={selectedModel}
+          pageName={generated_content}
+          auth0Id={user ? user.sub : null}
+          userNickname={nickname}
+        />
+        {isCreator && (
+          <motion.button
+            onClick={handleDownload}
+            className="mt-4 btn btn-primary w-full"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Download
+          </motion.button>
+        )}
+      </Sidebar>
+    )}
+  </div>
+);
 }
