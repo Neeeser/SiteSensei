@@ -51,7 +51,7 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
   };
 
   const modelInfo = getModelInfo(page.model_used);
-  console.log(page.users)
+
   const linkHref = page.users ? `/page/${page.users.nickname}/${page.name}` : `/page/anon/${page.name}`;
 
   return (

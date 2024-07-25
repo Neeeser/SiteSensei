@@ -29,8 +29,8 @@ export default function DynamicPage({ params }) {
         setIsLoading(true);
         setError(null);
         setRevisionError(null);
-        console.log('Params:', params);
-        console.log('Fetching content for:', nickname, generated_content);
+
+
         if (!nickname || !generated_content) {
           throw new Error('Missing nickname or page name');
         }
@@ -41,7 +41,7 @@ export default function DynamicPage({ params }) {
           throw new Error(`HTTP error! status: ${contentResponse.status}`);
         }
         const contentData = await contentResponse.json();
-        console.log('Page data:', contentData);
+
         setContent(contentData);
         setSelectedModel(contentData.model || 'FREE_MODEL');
 
@@ -50,7 +50,7 @@ export default function DynamicPage({ params }) {
           const revisionsResponse = await fetch(`/api/get-page-revisions?nickname=${nickname}&pageName=${generated_content}`);
           if (revisionsResponse.ok) {
             const revisionsData = await revisionsResponse.json();
-            console.log('Revisions data:', revisionsData);
+
             setRevisions([contentData, ...revisionsData]);
           } else {
             const errorData = await revisionsResponse.json();
@@ -82,7 +82,7 @@ export default function DynamicPage({ params }) {
 
   const handleEditSubmit = async (newHtml, newJavascript) => {
     setContent({ html: newHtml, javascript: newJavascript });
-    console.log('Content updated successfully');
+
     
     // Refresh revisions
     const revisionsResponse = await fetch(`/api/get-page-revisions?nickname=${nickname}&pageName=${generated_content}`);

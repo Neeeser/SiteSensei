@@ -53,14 +53,14 @@ export default function CreatePage() {
 
   useEffect(() => {
     let timer;
-    console.log("Current state:", { initialLoad, initialDelayPassed, isTyping, placeholderText, currentExampleIndex });
+
   
     if (initialLoad) {
       timer = setTimeout(() => {
         setInitialLoad(false);
         setInitialDelayPassed(true);
         setIsTyping(false); // Start by deleting the initial placeholder
-        console.log("Initial delay passed, starting to delete initial placeholder");
+
       }, 5000);
     } else if (initialDelayPassed) {
       const currentExample = placeholderExamples[currentExampleIndex];
@@ -81,7 +81,7 @@ export default function CreatePage() {
             setPlaceholderText(placeholderText.slice(0, -1));
           }, 50);
         } else {
-          console.log("Moving to next example");
+
           setCurrentExampleIndex((prevIndex) => (prevIndex + 1) % placeholderExamples.length);
           setIsTyping(true);
         }
