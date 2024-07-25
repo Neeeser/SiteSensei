@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import DynamicContent from '@/components/DynamicContent';
 import Sidebar from '@/components/Sidebar';
 import EditChatbox from '@/components/EditChatbox';
-import { Menu } from 'lucide-react';
+import { Menu, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
 export default function DynamicPage({ params }) {
@@ -12,10 +12,13 @@ export default function DynamicPage({ params }) {
   const [content, setContent] = useState({ html: '', javascript: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [revisionError, setRevisionError] = useState(null);
   const [isCreator, setIsCreator] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('FREE_MODEL');
   const [userRole, setUserRole] = useState('free');
+  const [revisions, setRevisions] = useState([]);
+  const [currentRevisionIndex, setCurrentRevisionIndex] = useState(0);
   const router = useRouter();
   const { user } = useUser();
 
@@ -23,6 +26,8 @@ export default function DynamicPage({ params }) {
     async function fetchContentAndCheckUser() {
       try {
         setIsLoading(true);
+        setError(null);
+        setRevisionError(null);
         console.log('Params:', params);
         console.log('Fetching content for:', nickname, generated_content);
         if (!nickname || !generated_content) {
@@ -38,6 +43,22 @@ export default function DynamicPage({ params }) {
         console.log('Page data:', contentData);
         setContent(contentData);
         setSelectedModel(contentData.model || 'FREE_MODEL');
+
+        // Fetch revisions
+        try {
+          const revisionsResponse = await fetch(`/api/get-page-revisions?nickname=${nickname}&pageName=${generated_content}`);
+          if (revisionsResponse.ok) {
+            const revisionsData = await revisionsResponse.json();
+            console.log('Revisions data:', revisionsData);
+            setRevisions([contentData, ...revisionsData]);
+          } else {
+            const errorData = await revisionsResponse.json();
+            setRevisionError(errorData.error || 'Failed to fetch revisions');
+          }
+        } catch (revisionError) {
+          console.error('Error fetching revisions:', revisionError);
+          setRevisionError('Failed to fetch revisions');
+        }
 
         // Check if the current user is the creator
         if (user) {
@@ -59,32 +80,18 @@ export default function DynamicPage({ params }) {
   }, [nickname, generated_content, user]);
 
   const handleEditSubmit = async (newHtml, newJavascript) => {
-    try {
-      const updateResponse = await fetch('/api/update-content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          page: generated_content,
-          html: newHtml,
-          javascript: newJavascript,
-          auth0Id: user ? user.sub : null,
-          model: selectedModel,
-          originalPrompt: null,
-          enhancedPrompt: null,
-          updatedAt: new Date().toISOString()
-        }),
-      });
-
-      if (!updateResponse.ok) {
-        throw new Error('Failed to update content');
-      }
-
-      setContent({ html: newHtml, javascript: newJavascript });
-      console.log('Content updated successfully');
-    } catch (error) {
-      console.error('Error updating content:', error);
+    setContent({ html: newHtml, javascript: newJavascript });
+    console.log('Content updated successfully');
+    
+    // Refresh revisions
+    const revisionsResponse = await fetch(`/api/get-page-revisions?nickname=${nickname}&pageName=${generated_content}`);
+    if (revisionsResponse.ok) {
+      const revisionsData = await revisionsResponse.json();
+      setRevisions([{ html: newHtml, javascript: newJavascript }, ...revisionsData]);
+      setCurrentRevisionIndex(0);
     }
   };
+
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -93,6 +100,14 @@ export default function DynamicPage({ params }) {
   const canUseModel = (model) => {
     if (model === 'FREE_MODEL') return true;
     return userRole === 'admin' || userRole === 'paid';
+  };
+
+  const navigateRevision = (direction) => {
+    const newIndex = currentRevisionIndex + direction;
+    if (newIndex >= 0 && newIndex < revisions.length) {
+      setCurrentRevisionIndex(newIndex);
+      setContent(revisions[newIndex]);
+    }
   };
 
   if (isLoading) {
@@ -124,6 +139,32 @@ export default function DynamicPage({ params }) {
             javascript={content.javascript}
           />
         </div>
+        {revisionError && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-red-500">
+            Error loading revisions: {revisionError}
+          </div>
+        )}
+        {!revisionError && revisions.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-4">
+            <button
+              onClick={() => navigateRevision(1)}
+              disabled={currentRevisionIndex === revisions.length - 1}
+              className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <span className="text-text-light-secondary dark:text-text-dark-secondary">
+              Revision {currentRevisionIndex + 1} of {revisions.length}
+            </span>
+            <button
+              onClick={() => navigateRevision(-1)}
+              disabled={currentRevisionIndex === 0}
+              className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
+        )}
         {isCreator && (
           <>
             <button

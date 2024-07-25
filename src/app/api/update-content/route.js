@@ -13,19 +13,22 @@ export async function POST(request) {
       enhancedPrompt,
       createdAt
     } = await request.json();
-   
+
+    console.log('Received data:', { page, auth0Id, model, createdAt });
+
     let userId = null;
     let isAnonymous = true;
     if (auth0Id) {
-      // Check if the user exists in our users table
+      console.log('Fetching user for auth0Id:', auth0Id);
       let { data: user, error: userError } = await supabase
         .from('users')
         .select('id')
         .eq('auth0_id', auth0Id)
         .single();
+
       if (userError) {
-        if (userError.code === 'PGRST116') {  // PGRST116 is the error code for no rows returned
-          // User doesn't exist
+        console.error('User fetch error:', userError);
+        if (userError.code === 'PGRST116') {
           return NextResponse.json({ message: 'User does not exist' }, { status: 404 });
         } else {
           throw userError;
@@ -33,8 +36,32 @@ export async function POST(request) {
       }
       userId = user.id;
       isAnonymous = false;
+      console.log('User found:', { userId, isAnonymous });
     }
-    // Prepare the data object for the pages table
+
+    console.log('Fetching existing page');
+    let query = supabase
+      .from('pages')
+      .select('*')
+      .eq('name', page);
+
+    if (isAnonymous) {
+      query = query.is('user_id', null);
+    } else {
+      query = query.eq('user_id', userId);
+    }
+
+    let { data: existingPage, error: pageError } = await query.single();
+
+    if (pageError) {
+      console.error('Page fetch error:', pageError);
+      if (pageError.code !== 'PGRST116') {
+        throw pageError;
+      }
+    }
+
+    //console.log('Existing page:', existingPage);
+
     const pageData = {
       name: page,
       html,
@@ -44,54 +71,67 @@ export async function POST(request) {
       model_used: model,
       original_prompt: originalPrompt,
       enhanced_prompt: enhancedPrompt,
-      created_at: createdAt
+      updated_at: new Date().toISOString()
     };
 
-    // Check if the page already exists
-    let existingPage;
-    if (isAnonymous) {
-      const { data, error } = await supabase
-        .from('pages')
-        .select('id')
-        .eq('name', page)
-        .is('user_id', null)  // Check for anonymous page
-        .single();
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-      existingPage = data;
-    } else {
-      const { data, error } = await supabase
-        .from('pages')
-        .select('id')
-        .eq('name', page)
-        .eq('user_id', userId)  // Check for user's page
-        .single();
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-      existingPage = data;
-    }
+    console.log('Prepared page data:', pageData);
 
-    let error;
     if (existingPage) {
-      // Update existing page
+      console.log('Updating existing page');
+      const revisionData = {
+        page_id: existingPage.id,
+        html: existingPage.html,
+        javascript: existingPage.javascript,
+        model_used: existingPage.model_used,
+        original_prompt: existingPage.original_prompt,
+        enhanced_prompt: existingPage.enhanced_prompt,
+        user_id: existingPage.user_id,
+        is_anonymous: existingPage.is_anonymous,
+        is_favorited: existingPage.is_favorited
+      };
+      console.log('Revision data:', revisionData);
+
+      const { error: revisionError } = await supabase
+        .from('page_revisions')
+        .insert(revisionData);
+
+      if (revisionError) {
+        console.error('Revision insert error:', revisionError);
+        throw revisionError;
+      }
+
       const { error: updateError } = await supabase
         .from('pages')
         .update(pageData)
         .eq('id', existingPage.id);
-      error = updateError;
+
+      if (updateError) {
+        console.error('Page update error:', updateError);
+        throw updateError;
+      }
     } else {
-      // Insert new page
+      console.log('Inserting new page');
+      pageData.created_at = createdAt;
+      pageData.is_favorited = false;
+
       const { error: insertError } = await supabase
         .from('pages')
         .insert(pageData);
-      error = insertError;
+
+      if (insertError) {
+        console.error('Page insert error:', insertError);
+        throw insertError;
+      }
     }
-    if (error) throw error;
+
+    console.log('Operation completed successfully');
     return NextResponse.json({ message: 'Content updated successfully' });
   } catch (error) {
-    console.error('Error updating content:', error);
-    return NextResponse.json({ message: 'Error updating content' }, { status: 500 });
+    console.error('Unhandled error:', error);
+    return NextResponse.json({ 
+      error: 'Error updating content', 
+      details: error.message,
+      stack: error.stack
+    }, { status: 500 });
   }
 }
