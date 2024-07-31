@@ -87,11 +87,13 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
         )}
         <div className="relative w-full" style={{ paddingBottom: `${(previewHeight / previewWidth) * 100}%` }}>
           <div className="absolute inset-0">
-            <PreviewComponent
+          <PreviewComponent
               html={page.html}
               javascript={page.javascript}
               width={previewWidth}
               height={previewHeight}
+              suppressErrors={true}
+              executeJavaScript={false}
             />
           </div>
         </div>

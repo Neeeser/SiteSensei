@@ -1,3 +1,4 @@
+// src/app/layout.jsx
 import { UserProvider } from '@auth0/nextjs-auth0/client';
 import { ThemeProvider } from 'next-themes';
 import { Analytics } from "@vercel/analytics/react";
@@ -11,18 +12,18 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <UserProvider>
-        <ThemeProvider attribute="class">
-          <body className="flex flex-col h-screen">
+    <html lang="en" suppressHydrationWarning>
+      <body className="flex flex-col h-screen">
+        <UserProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Navbar className="z-10" />
             <main className="flex-grow overflow-auto">
               {children}
             </main>
             <Analytics />
-          </body>
-        </ThemeProvider>
-      </UserProvider>
+          </ThemeProvider>
+        </UserProvider>
+      </body>
     </html>
   );
 }

@@ -1,43 +1,58 @@
+// src/components/PreviewComponent.js
 import React, { useRef, useEffect, useState } from 'react';
 
-const PreviewComponent = ({ html, javascript, width, height }) => {
+const PreviewComponent = ({ html, javascript, width, height, suppressErrors = false, executeJavaScript = true }) => {
   const containerRef = useRef(null);
   const iframeRef = useRef(null);
   const [scale, setScale] = useState(1);
   const [customAlert, setCustomAlert] = useState(null);
 
   useEffect(() => {
-    const updateIframeContent = () => {
-      if (iframeRef.current) {
-        const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
-        iframeDoc.open();
-        iframeDoc.write(`
-          <html>
-            <head>
-              <style>
-                body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
-              </style>
-            </head>
-            <body>
-              ${html}
-              <script>
-                // Override alert and confirm
-                window.alert = function(message) {
-                  window.parent.postMessage({ type: 'alert', message: message }, '*');
-                };
-                window.confirm = function(message) {
-                  window.parent.postMessage({ type: 'confirm', message: message }, '*');
-                  return false;
-                };
-                ${javascript}
-              </script>
-            </body>
-          </html>
-        `);
-        iframeDoc.close();
-      }
-    };
-    updateIframeContent();
+    const iframeContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+          </style>
+          ${suppressErrors ? `
+            <script>
+              window.onerror = function(message, source, lineno, colno, error) {
+                console.log('Suppressed error:', message);
+                return true;
+              };
+              console.error = console.warn = console.log = function() {};
+            </script>
+          ` : ''}
+          <script>
+            function handleImageError(img) {
+              img.onerror = null;
+              img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Ctext x="50" y="50" font-family="Arial" font-size="14" text-anchor="middle" dy=".3em" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
+            }
+          </script>
+        </head>
+        <body>
+          ${html.replace(/<img/g, '<img onerror="handleImageError(this)"')}
+          ${executeJavaScript ? `
+            <script>
+              // Override alert and confirm
+              window.alert = function(message) {
+                window.parent.postMessage({ type: 'alert', message: message }, '*');
+              };
+              window.confirm = function(message) {
+                window.parent.postMessage({ type: 'confirm', message: message }, '*');
+                return false;
+              };
+              ${javascript}
+            </script>
+          ` : ''}
+        </body>
+      </html>
+    `;
+
+    if (iframeRef.current) {
+      iframeRef.current.srcdoc = iframeContent;
+    }
 
     const handleMessage = (event) => {
       if (event.source === iframeRef.current.contentWindow && event.data && (event.data.type === 'alert' || event.data.type === 'confirm')) {
@@ -47,7 +62,7 @@ const PreviewComponent = ({ html, javascript, width, height }) => {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [html, javascript]);
+  }, [html, javascript, suppressErrors, executeJavaScript]);
 
   useEffect(() => {
     const calculateScale = () => {
@@ -80,6 +95,7 @@ const PreviewComponent = ({ html, javascript, width, height }) => {
           ref={iframeRef}
           title="Page Preview"
           className="w-full h-full border-none pointer-events-none"
+          sandbox={executeJavaScript ? "allow-scripts" : ""}
         />
         {customAlert && (
           <div className="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
