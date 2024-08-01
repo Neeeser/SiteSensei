@@ -1,3 +1,4 @@
+// src/app/api/get-page-revisions/route.js
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';  // Adjust the import path as necessary
 
@@ -11,26 +12,46 @@ export async function GET(request) {
   }
 
   try {
-    // First, get the user_id for the given nickname
+    // If the nickname is 'anon', return an empty array of revisions
+    if (nickname === 'anon') {
+      return NextResponse.json([]);
+    }
+
+    // Get the user_id for the given nickname
     let { data: userData, error: userError } = await supabase
       .from('users')
       .select('id')
       .eq('nickname', nickname)
       .single();
 
-    if (userError) throw userError;
+    if (userError) {
+      if (userError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      throw userError;
+    }
 
-    // Now, get the page_id for the given page name and user_id
+    // Get the page_id and check if it's anonymous
     let { data: pageData, error: pageError } = await supabase
       .from('pages')
-      .select('id')
+      .select('id, is_anonymous')
       .eq('name', pageName)
       .eq('user_id', userData.id)
       .single();
 
-    if (pageError) throw pageError;
+    if (pageError) {
+      if (pageError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+      }
+      throw pageError;
+    }
 
-    // Finally, get the page revisions
+    // If the page is anonymous, return an empty array of revisions
+    if (pageData.is_anonymous) {
+      return NextResponse.json([]);
+    }
+
+    // Get the page revisions
     let { data: revisions, error: revisionsError } = await supabase
       .from('page_revisions')
       .select('id, html, javascript, created_at, model_used, original_prompt, enhanced_prompt')
@@ -39,7 +60,9 @@ export async function GET(request) {
 
     if (revisionsError) throw revisionsError;
 
-    return NextResponse.json(revisions);
+    // If no revisions are found, return an empty array instead of throwing an error
+    return NextResponse.json(revisions || []);
+
   } catch (error) {
     console.error('Error fetching page revisions:', error);
     return NextResponse.json({ error: 'Error fetching page revisions', details: error.message }, { status: 500 });

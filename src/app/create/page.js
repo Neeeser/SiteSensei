@@ -402,18 +402,19 @@ export default function CreatePage() {
           
 
          {/* New Edit Chatbox Component */}
-         <EditChatbox
-  isVisible={isPageGenerated}
-  onSubmit={handleEditSubmit}
-  className="mt-6"
-  currentHtml={htmlContent}
-  currentJavascript={jsContent}
-  selectedModel={selectedModel}
-  pageName={pageName}
-  auth0Id={user ? user.sub : null}
-  userNickname={userNickname}
-/>
-
+         {user && isPageGenerated && (
+            <EditChatbox
+              isVisible={true}
+              onSubmit={handleEditSubmit}
+              className="mt-6"
+              currentHtml={htmlContent}
+              currentJavascript={jsContent}
+              selectedModel={selectedModel}
+              pageName={pageName}
+              auth0Id={user.sub}
+              userNickname={userNickname}
+            />
+         )}
         </motion.div>
       </div>
     </motion.div>
