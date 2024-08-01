@@ -46,16 +46,24 @@ function separateJavaScript(html) {
 
 async function* processStream(stream, controller) {
   let buffer = '';
+  let contentYielded = false;
+
   for await (const chunk of stream) {
-    buffer += chunk.choices[0]?.delta?.content || '';
+    const content = chunk.choices[0]?.delta?.content || '';
+    buffer += content;
+
+    // Check for [END_HTML] marker
     if (buffer.includes('[END_HTML]')) {
-      controller.abort();
       const endIndex = buffer.indexOf('[END_HTML]') + '[END_HTML]'.length;
-      yield buffer.slice(0, endIndex);
-      console.log('Stream successfully canceled early at [END_HTML]');
-      break;
+      const finalContent = buffer.slice(0, endIndex);
+      
+      if (!contentYielded) {
+        contentYielded = true; // Ensure only one yield happens
+        yield finalContent;
+        controller.abort(); // Abort the stream after getting the complete HTML
+        break;
+      }
     }
-    yield chunk.choices[0]?.delta?.content || '';
   }
 }
 
@@ -66,6 +74,7 @@ export async function POST(request) {
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
+
     const model_name = getApiKey(model);
     console.log('Using model:', model_name);
 
