@@ -26,6 +26,7 @@ export default function DynamicPage({ params }) {
   const [userRole, setUserRole] = useState('free');
   const [revisions, setRevisions] = useState([]);
   const [currentRevisionIndex, setCurrentRevisionIndex] = useState(0);
+  const [showEditHint, setShowEditHint] = useState(false);
   const router = useRouter();
   const { user } = useUser();
 
@@ -152,7 +153,16 @@ export default function DynamicPage({ params }) {
     anchor.click();
     document.body.removeChild(anchor);
   };
-  
+
+  useEffect(() => {
+    if (isCreator && !isLoading) {
+      setShowEditHint(true);
+      const timer = setTimeout(() => {
+        setShowEditHint(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isCreator, isLoading]);
 
   if (isLoading) {
     return (
@@ -191,12 +201,26 @@ export default function DynamicPage({ params }) {
           </Tooltip>
         </div>
         {isCreator && (
-          <button
-            onClick={toggleSidebar}
-            className="absolute top-4 right-4 bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200"
-          >
-            <Menu size={24} />
-          </button>
+          <div className="absolute top-4 right-4 flex items-center">
+            <AnimatePresence>
+              {showEditHint && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="mr-2 bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary px-2 py-1 rounded shadow-md"
+                >
+                  Click to edit
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <button
+              onClick={toggleSidebar}
+              className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200"
+            >
+              <Menu size={24} />
+            </button>
+          </div>
         )}
       </div>
       {revisionError && (
