@@ -11,15 +11,15 @@ const PricingPage = () => {
       price: "$0",
       description: "Rate limited",
       features: [
-        { name: "Generations per day", value: "5" },
+        { name: "Generations per day", value: "20" },
         { name: "Access to basic models", value: true },
-        { name: "Download Code", value: false },
+        { name: "Download Code", value: true },
         { name: "Advanced model", value: false },
       ],
     },
     {
       name: "Pro",
-      price: "$.20",
+      price: "$...",
       description: "Per generation",
       features: [
         { name: "Generations per day", value: "Unlimited" },
@@ -30,7 +30,7 @@ const PricingPage = () => {
     },
     {
       name: "Advanced",
-      price: "$.50",
+      price: "$...",
       description: "Per generation",
       features: [
         { name: "Generations per day", value: "Unlimited" },

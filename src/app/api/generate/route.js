@@ -1,5 +1,4 @@
 // api/generate/route.js
-
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
@@ -38,27 +37,39 @@ function separateJavaScript(html) {
     javascript += script + '\n';
     return '';
   });
-
-  // Remove any remaining script tags
   htmlWithoutScripts = htmlWithoutScripts.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
-
   return {
     html: htmlWithoutScripts.trim(),
     javascript: javascript.trim()
   };
 }
 
+async function* processStream(stream, controller) {
+  let buffer = '';
+  for await (const chunk of stream) {
+    buffer += chunk.choices[0]?.delta?.content || '';
+    if (buffer.includes('[END_HTML]')) {
+      controller.abort();
+      const endIndex = buffer.indexOf('[END_HTML]') + '[END_HTML]'.length;
+      yield buffer.slice(0, endIndex);
+      console.log('Stream successfully canceled early at [END_HTML]');
+      break;
+    }
+    yield chunk.choices[0]?.delta?.content || '';
+  }
+}
+
 export async function POST(request) {
+  const controller = new AbortController();
   try {
     const { prompt, model } = await request.json();
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
-
     const model_name = getApiKey(model);
     console.log('Using model:', model_name);
 
-    const completion = await openai.chat.completions.create({
+    const stream = await openai.chat.completions.create({
       model: model_name,
       messages: [
         {
@@ -89,26 +100,32 @@ export async function POST(request) {
         }
       ],
       temperature: 0.3,
+      stream: true,
+      signal: controller.signal,
     });
 
-    const generatedContent = completion.choices[0].message.content;
+    let generatedContent = '';
+    for await (const chunk of processStream(stream, controller)) {
+      generatedContent += chunk;
+    }
+
     console.log('Generated content:', generatedContent);
-
     const html = extractHtml(generatedContent);
-
     if (!html) {
       throw new Error('Failed to extract valid HTML from the generated content');
     }
-
     const { html: htmlWithoutScripts, javascript } = separateJavaScript(html);
-
     return NextResponse.json({
       message: 'HTML and JavaScript generated successfully',
       html: htmlWithoutScripts,
       javascript: javascript
     });
   } catch (error) {
-    console.error('Error generating content:', error);
-    return NextResponse.json({ error: 'Error generating content' }, { status: 500 });
+    if (error.name === 'AbortError') {
+      console.log('Stream was successfully aborted');
+    } else {
+      console.error('Error generating content:', error);
+      return NextResponse.json({ error: 'Error generating content' }, { status: 500 });
+    }
   }
 }
