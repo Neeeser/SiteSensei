@@ -5,12 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DynamicContent from '@/components/DynamicContent';
 import Sidebar from '@/components/Sidebar';
 import EditChatbox from '@/components/EditChatbox';
-import { Menu, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Menu, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import Tooltip from '@/components/Tooltip';
 
 export default function DynamicPage({ params }) {
   const { nickname, generated_content } = params;
-  const [content, setContent] = useState({ html: '', javascript: '' });
+  const [content, setContent] = useState({ 
+    html: '', 
+    javascript: '', 
+    original_prompt: '', 
+    enhanced_prompt: '' 
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [revisionError, setRevisionError] = useState(null);
@@ -30,27 +36,29 @@ export default function DynamicPage({ params }) {
         setError(null);
         setRevisionError(null);
 
-
         if (!nickname || !generated_content) {
           throw new Error('Missing nickname or page name');
         }
 
-        // Fetch page content
         const contentResponse = await fetch(`/api/content?nickname=${nickname}&pageName=${generated_content}`);
         if (!contentResponse.ok) {
           throw new Error(`HTTP error! status: ${contentResponse.status}`);
         }
         const contentData = await contentResponse.json();
 
-        setContent(contentData);
-        setSelectedModel(contentData.model || 'FREE_MODEL');
+        setContent({
+          html: contentData.html,
+          javascript: contentData.javascript,
+          original_prompt: contentData.original_prompt,
+          enhanced_prompt: contentData.enhanced_prompt
+        });
+        setSelectedModel(contentData.model_used || 'FREE_MODEL');
 
         // Fetch revisions
         try {
           const revisionsResponse = await fetch(`/api/get-page-revisions?nickname=${nickname}&pageName=${generated_content}`);
           if (revisionsResponse.ok) {
             const revisionsData = await revisionsResponse.json();
-
             setRevisions([contentData, ...revisionsData]);
           } else {
             const errorData = await revisionsResponse.json();
@@ -66,9 +74,17 @@ export default function DynamicPage({ params }) {
           setIsCreator(user.nickname === nickname);
           
           // Fetch user role
-          const roleResponse = await fetch('/api/getUserRole');
-          const roleData = await roleResponse.json();
-          setUserRole(roleData.role);
+          try {
+            const roleResponse = await fetch('/api/getUserRole');
+            if (roleResponse.ok) {
+              const roleData = await roleResponse.json();
+              setUserRole(roleData.role);
+            } else {
+              console.error('Failed to fetch user role');
+            }
+          } catch (roleError) {
+            console.error('Error fetching user role:', roleError);
+          }
         }
       } catch (error) {
         console.error('Error fetching content or user data:', error);
@@ -77,8 +93,18 @@ export default function DynamicPage({ params }) {
         setIsLoading(false);
       }
     }
+
     fetchContentAndCheckUser();
   }, [nickname, generated_content, user]);
+
+  const tooltipContent = (
+    <div>
+      <p><strong>Original Prompt:</strong> {content.original_prompt}</p>
+      {content.enhanced_prompt !== "Enhanced prompt not available" && (
+        <p><strong>Enhanced Prompt:</strong> {content.enhanced_prompt}</p>
+      )}
+    </div>
+  );
 
   const handleEditSubmit = async (newHtml, newJavascript) => {
     setContent({ html: newHtml, javascript: newJavascript });
@@ -156,6 +182,13 @@ export default function DynamicPage({ params }) {
             html={content.html}
             javascript={content.javascript}
           />
+        </div>
+        <div className="absolute bottom-4 right-4 z-40">
+          <Tooltip content={tooltipContent}>
+            <div className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 cursor-help">
+              <Info size={24} />
+            </div>
+          </Tooltip>
         </div>
         {isCreator && (
           <button

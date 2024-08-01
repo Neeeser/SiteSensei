@@ -13,17 +13,14 @@ export async function GET(request) {
 
   try {
     let pageQuery;
-
     if (nickname === 'anon') {
-      // Fetch anonymous pages
       pageQuery = supabase
         .from('pages')
-        .select('html, javascript')
+        .select('html, javascript, original_prompt, enhanced_prompt, model_used')
         .eq('is_anonymous', true)
         .eq('name', pageName)
         .single();
     } else {
-      // First, get the user_id for the given nickname
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id')
@@ -35,10 +32,9 @@ export async function GET(request) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      // Now fetch the page content using the user_id and pageName
       pageQuery = supabase
         .from('pages')
-        .select('html, javascript')
+        .select('html, javascript, original_prompt, enhanced_prompt, model_used')
         .eq('user_id', userData.id)
         .eq('name', pageName)
         .single();
@@ -51,7 +47,13 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      html: data.html,
+      javascript: data.javascript,
+      original_prompt: data.original_prompt || "Original prompt not available",
+      enhanced_prompt: data.enhanced_prompt || "Enhanced prompt not available",
+      model_used: data.model_used
+    });
   } catch (error) {
     console.error('Error fetching content:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
