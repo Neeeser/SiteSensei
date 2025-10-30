@@ -14,8 +14,6 @@ const DynamicContent = ({ html, javascript, onInteraction }) => {
       iframe.style.width = '100%';
       iframe.style.height = '100%';
       iframe.style.border = 'none';
-      iframe.style.overflow = 'hidden';
-      iframe.setAttribute('scrolling', 'no');
       containerRef.current.innerHTML = '';
       containerRef.current.appendChild(iframe);
      
@@ -28,14 +26,11 @@ const DynamicContent = ({ html, javascript, onInteraction }) => {
             <base target="_parent">
             <style>
               html, body {
-                height: 100%;
-                width: 100%;
+                height: auto;
+                min-height: 100%;
                 margin: 0;
                 padding: 0;
-                overflow: hidden;
-              }
-              body {
-                display: block;
+                overflow: visible;
               }
             </style>
           </head>
