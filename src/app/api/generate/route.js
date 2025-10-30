@@ -14,6 +14,9 @@ const openai = new OpenAI({
   }
 });
 
+const START_MARKER = '[START_HTML]';
+const END_MARKER = '[END_HTML]';
+
 // Function to get the appropriate API key based on the selected model
 function getApiKey(model) {
   switch (model) {
@@ -50,51 +53,46 @@ function separateJavaScript(html) {
   };
 }
 
-// Asynchronous generator function to process the streaming response
-async function* processStream(stream, controller) {
-  let buffer = '';
-  let contentYielded = false;
+function stripPartialScriptContent(html) {
+  if (!html) return '';
+  return html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<script\b[^>]*>[\s\S]*$/i, '')
+    .trim();
+}
 
-  for await (const chunk of stream) {
-    const content = chunk.choices[0]?.delta?.content || '';
-    buffer += content;
-
-    // Check for [END_HTML] marker
-    if (buffer.includes('[END_HTML]')) {
-      const endIndex = buffer.indexOf('[END_HTML]') + '[END_HTML]'.length;
-      const finalContent = buffer.slice(0, endIndex);
-
-      if (!contentYielded) {
-        contentYielded = true; // Ensure only one yield happens
-        yield finalContent;
-        controller.abort(); // Abort the stream after getting the complete HTML
-        break;
-      }
-    }
-  }
+function encodePayload(payload) {
+  const encoder = new TextEncoder();
+  return encoder.encode(`${JSON.stringify(payload)}\n`);
 }
 
 // Main POST handler function
 export async function POST(request) {
-  const controller = new AbortController();
+  let body;
   try {
-    // Extract prompt and model from the request body
-    const { prompt, model } = await request.json();
-    if (!prompt) {
-      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
-    }
+    body = await request.json();
+  } catch (error) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
-    // Get the appropriate model name
-    const model_name = getApiKey(model);
-    console.log('Using model:', model_name);
+  const { prompt, model } = body || {};
+  if (!prompt) {
+    return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
+  }
 
-    // Create a chat completion request to OpenAI
-    const stream = await openai.chat.completions.create({
-      model: model_name,
-      messages: [
-        {
-          role: "system",
-          content: `You are an exceptionally talented front-end engineer with a sharp product sense. You design and build polished, contemporary web experiences that balance aesthetics, accessibility, and performance.
+  const modelName = getApiKey(model);
+  console.log('Using model:', modelName);
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      try {
+        const completionStream = await openai.chat.completions.create({
+          model: modelName,
+          messages: [
+            {
+              role: "system",
+              content: `You are an exceptionally talented front-end engineer with a sharp product sense. You design and build polished, contemporary web experiences that balance aesthetics, accessibility, and performance.
 
 Rendering context:
 - The platform extracts everything between [START_HTML] and [END_HTML].
@@ -119,49 +117,80 @@ Output format:
   ...HTML with embedded <style> and trailing <script>...
   [END_HTML]
 - Exclude commentary or explanations outside the markers.`
-        },
-        {
-          role: "user",
-          content: prompt
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          stream: true,
+          provider: {
+            sort: 'price'
+          }
+        });
+
+        let buffer = '';
+        let startIndex = -1;
+        let lastSentHtml = '';
+
+        for await (const chunk of completionStream) {
+          const content = chunk.choices?.[0]?.delta?.content || '';
+          if (!content) {
+            continue;
+          }
+
+          buffer += content;
+
+          if (startIndex === -1) {
+            const markerIndex = buffer.indexOf(START_MARKER);
+            if (markerIndex !== -1) {
+              startIndex = markerIndex + START_MARKER.length;
+            }
+          }
+
+          if (startIndex !== -1) {
+            const afterStart = buffer.slice(startIndex);
+            const endIndex = afterStart.indexOf(END_MARKER);
+            const htmlSegment = endIndex !== -1 ? afterStart.slice(0, endIndex) : afterStart;
+            const sanitizedHtml = stripPartialScriptContent(htmlSegment);
+
+            if (sanitizedHtml && sanitizedHtml !== lastSentHtml) {
+              lastSentHtml = sanitizedHtml;
+              controller.enqueue(encoder.encode(`${JSON.stringify({ type: 'partial', html: sanitizedHtml })}\n`));
+            }
+
+            if (endIndex !== -1) {
+              break;
+            }
+          }
         }
-      ],
-      temperature: 0.7,
-      stream: true,
-      signal: controller.signal,
-      provider: {
-        sort: 'price'
+
+        const fullHtml = extractHtml(buffer);
+        if (!fullHtml) {
+          throw new Error('Failed to extract valid HTML from the generated content');
+        }
+
+        const { html: htmlWithoutScripts, javascript } = separateJavaScript(fullHtml);
+        controller.enqueue(encoder.encode(`${JSON.stringify({
+          type: 'complete',
+          html: htmlWithoutScripts,
+          javascript
+        })}\n`));
+        controller.close();
+      } catch (error) {
+        console.error('Error during streaming:', error);
+        controller.enqueue(encodePayload({ type: 'error', message: 'Error generating content' }));
+        controller.close();
       }
-    });
-
-    // Process the streaming response
-    let generatedContent = '';
-    for await (const chunk of processStream(stream, controller)) {
-      generatedContent += chunk;
     }
+  });
 
-    console.log('Generated content:', generatedContent);
-
-    // Extract HTML from the generated content
-    const html = extractHtml(generatedContent);
-    if (!html) {
-      throw new Error('Failed to extract valid HTML from the generated content');
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive'
     }
-
-    // Separate JavaScript from HTML
-    const { html: htmlWithoutScripts, javascript } = separateJavaScript(html);
-
-    // Return the processed HTML and JavaScript
-    return NextResponse.json({
-      message: 'HTML and JavaScript generated successfully',
-      html: htmlWithoutScripts,
-      javascript: javascript
-    });
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      console.log('Stream was successfully aborted');
-    } else {
-      console.error('Error generating content:', error);
-      return NextResponse.json({ error: 'Error generating content' }, { status: 500 });
-    }
-  }
+  });
 }

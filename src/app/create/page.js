@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import PreviewComponent from '../../components/PreviewComponent';
+import DynamicHtmlRenderer from '../../components/DynamicHtmlRenderer';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import EditChatbox from '../../components/EditChatbox';
@@ -27,6 +27,9 @@ export default function CreatePage() {
   const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
   const [enhancedPromptContent, setEnhancedPromptContent] = useState("");
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [streamingHtml, setStreamingHtml] = useState("");
+  const [streamingJavascript, setStreamingJavascript] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
 
   
   const placeholderExamples = [
@@ -145,6 +148,9 @@ export default function CreatePage() {
     setIsLoading(true);
     setMessage('');
     setIsPageGenerated(false);
+    setStreamingHtml('');
+    setStreamingJavascript('');
+    setIsStreaming(false);
 
     try {
       let finalPrompt = promptContent;
@@ -170,40 +176,134 @@ export default function CreatePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: finalPrompt, model: selectedModel }),
       });
-      const data = await response.json();
-      
-      if (data.html && data.javascript) {
-        setHtmlContent(data.html);
-        setJsContent(data.javascript);
-        setMessage('Content generated successfully');
-        
-        const storeResponse = await fetch('/api/update-content', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            page: pageName,
-            html: data.html,
-            javascript: data.javascript,
-            auth0Id: user ? user.sub : null,
-            model: selectedModel,
-            originalPrompt: promptContent,
-            enhancedPrompt: enhancedPrompt,
-            createdAt: new Date().toISOString()
-          }),
-        });
-        const storeData = await storeResponse.json();
-        if (storeData.message) {
-          setMessage(prevMessage => `${prevMessage}. ${storeData.message}`);
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to start generation';
+        try {
+          const errorData = await response.json();
+          if (errorData?.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.error('Error parsing generation error response:', parseError);
         }
-        setIsPageGenerated(true);
-      } else if (data.error) {
-        throw new Error(data.error);
+        throw new Error(errorMessage);
       }
+
+      if (!response.body) {
+        throw new Error('Streaming not supported in this environment');
+      }
+
+      setIsStreaming(true);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalPayload = null;
+      let streamError = null;
+
+      const handlePayload = (line) => {
+        const payload = JSON.parse(line);
+        switch (payload.type) {
+          case 'partial':
+            setStreamingHtml(payload.html || '');
+            break;
+          case 'complete':
+            finalPayload = payload;
+            setStreamingHtml(payload.html || '');
+            setStreamingJavascript(payload.javascript || '');
+            break;
+          case 'error':
+            throw new Error(payload.message || 'Error generating content');
+          default:
+            break;
+        }
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n');
+        buffer = parts.pop() ?? '';
+
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (!trimmed) continue;
+          try {
+            handlePayload(trimmed);
+          } catch (err) {
+            streamError = err;
+            break;
+          }
+        }
+
+        if (streamError) {
+          break;
+        }
+      }
+
+      if (!streamError) {
+        buffer += decoder.decode();
+        const trimmedBuffer = buffer.trim();
+        if (trimmedBuffer) {
+          try {
+            handlePayload(trimmedBuffer);
+          } catch (err) {
+            streamError = err;
+          }
+        }
+      }
+
+      if (streamError) {
+        throw streamError;
+      }
+
+      if (!finalPayload) {
+        throw new Error('Generation ended unexpectedly');
+      }
+
+      const finalHtml = finalPayload.html || '';
+      const finalJavascript = finalPayload.javascript || '';
+
+      setStreamingHtml(finalHtml);
+      setStreamingJavascript(finalJavascript);
+      setIsStreaming(false);
+      setHtmlContent(finalHtml);
+      setJsContent(finalJavascript);
+      setMessage('Content generated successfully');
+      
+      const storeResponse = await fetch('/api/update-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          page: pageName,
+          html: finalHtml,
+          javascript: finalJavascript,
+          auth0Id: user ? user.sub : null,
+          model: selectedModel,
+          originalPrompt: promptContent,
+          enhancedPrompt: enhancedPrompt,
+          createdAt: new Date().toISOString()
+        }),
+      });
+      const storeData = await storeResponse.json();
+      if (storeData.message) {
+        setMessage(prevMessage => `${prevMessage}. ${storeData.message}`);
+      }
+      setIsPageGenerated(true);
     } catch (error) {
       console.error('Error:', error);
+      setIsStreaming(false);
+      setStreamingHtml('');
+      setStreamingJavascript('');
       setMessage(error.message || 'Error generating content');
       setIsEnhancing(false);
     } finally {
+      setIsEnhancing(false);
       setIsLoading(false);
     }
   };
@@ -229,6 +329,9 @@ export default function CreatePage() {
       description: 'Experimental reasoning for complex flows',
     },
   ];
+
+  const previewHtml = isStreaming ? streamingHtml : (streamingHtml || htmlContent);
+  const previewJavascript = isStreaming ? '' : (streamingJavascript || jsContent);
 
   return (
     <motion.main 
@@ -477,11 +580,12 @@ export default function CreatePage() {
                 </span>
               </div>
               <div ref={previewContainerRef} className="h-full w-full p-4">
-                <PreviewComponent
-                  html={htmlContent}
-                  javascript={jsContent}
+                <DynamicHtmlRenderer
+                  html={previewHtml}
+                  javascript={previewJavascript}
                   width={previewSize.width}
                   height={previewSize.height}
+                  isStreaming={isStreaming}
                 />
               </div>
             </div>
