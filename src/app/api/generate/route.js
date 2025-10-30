@@ -9,8 +9,8 @@ const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENROUTER_API_KEY,
   defaultHeaders: {
-    "HTTP-Referer": "https://yourwebsite.com", // Replace with your actual website URL
-    "X-Title": "Your App Name", // Replace with your app name
+    "HTTP-Referer": "https://site-sensei.vercel.app/", // Replace with your actual website URL
+    "X-Title": "Site Sensei", // Replace with your app name
   }
 });
 
@@ -63,7 +63,7 @@ async function* processStream(stream, controller) {
     if (buffer.includes('[END_HTML]')) {
       const endIndex = buffer.indexOf('[END_HTML]') + '[END_HTML]'.length;
       const finalContent = buffer.slice(0, endIndex);
-      
+
       if (!contentYielded) {
         contentYielded = true; // Ensure only one yield happens
         yield finalContent;
@@ -124,8 +124,11 @@ export async function POST(request) {
         }
       ],
       temperature: 0.3,
-      stream: true,   
+      stream: true,
       signal: controller.signal,
+      provider: {
+        sort: 'throughput'
+      }
     });
 
     // Process the streaming response
@@ -135,16 +138,16 @@ export async function POST(request) {
     }
 
     console.log('Generated content:', generatedContent);
-    
+
     // Extract HTML from the generated content
     const html = extractHtml(generatedContent);
     if (!html) {
       throw new Error('Failed to extract valid HTML from the generated content');
     }
-    
+
     // Separate JavaScript from HTML
     const { html: htmlWithoutScripts, javascript } = separateJavaScript(html);
-    
+
     // Return the processed HTML and JavaScript
     return NextResponse.json({
       message: 'HTML and JavaScript generated successfully',
