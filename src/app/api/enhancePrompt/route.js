@@ -11,14 +11,7 @@ const openai = new OpenAI({
   }
 });
 
-export async function POST(request) {
-  try {
-    const { prompt } = await request.json();
-    if (!prompt) {
-      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
-    }
-
-    const systemPrompt = `
+const BASE_SYSTEM_PROMPT = `
 You transform brief user ideas into rich creative briefs for a single-page web experience rendered by an LLM into HTML, inline CSS, and a trailing <script>.
 
 Context:
@@ -38,31 +31,78 @@ Style requirements:
 - Write in 2–3 concise paragraphs separated by blank lines. Use natural language sentences rather than bullet lists or code.
 - Keep the instructions tightly aligned with the user's request; do not invent unrelated concepts.
 - Do not add headings, Markdown formatting, salutations, or closing remarks—return only the creative brief.
+`;
+
+function buildSystemPrompt(prompt) {
+  return `${BASE_SYSTEM_PROMPT}
 
 Craft the enhanced prompt for this user request:
 ${prompt}
-`
+`;
+}
 
-    const completion = await openai.chat.completions.create({
-      model: process.env.FREE_MODEL,
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        }
-      ],
-      temperature: 0.3,
-    });
+function encodePayload(payload) {
+  const encoder = new TextEncoder();
+  return encoder.encode(`${JSON.stringify(payload)}\n`);
+}
 
-    const enhancedPrompt = completion.choices[0].message.content.trim();
-    
-    
-    return NextResponse.json({
-      message: 'Prompt enhanced successfully',
-      enhancedPrompt
-    });
+export async function POST(request) {
+  let body;
+  try {
+    body = await request.json();
   } catch (error) {
-    console.error('Error enhancing prompt:', error);
-    return NextResponse.json({ error: 'Error enhancing prompt' }, { status: 500 });
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
+
+  const { prompt } = body || {};
+  if (!prompt) {
+    return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
+  }
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      try {
+        const completionStream = await openai.chat.completions.create({
+          model: process.env.FREE_MODEL,
+          messages: [
+            {
+              role: "system",
+              content: buildSystemPrompt(prompt),
+            }
+          ],
+          temperature: 0.3,
+          stream: true,
+        });
+
+        let accumulated = '';
+        for await (const chunk of completionStream) {
+          const content = chunk.choices?.[0]?.delta?.content || '';
+          if (!content) continue;
+          accumulated += content;
+          controller.enqueue(encoder.encode(`${JSON.stringify({ type: 'partial', text: accumulated })}\n`));
+        }
+
+        const enhancedPrompt = accumulated.trim();
+        if (!enhancedPrompt) {
+          throw new Error('Failed to enhance prompt');
+        }
+
+        controller.enqueue(encoder.encode(`${JSON.stringify({ type: 'complete', text: enhancedPrompt })}\n`));
+        controller.close();
+      } catch (error) {
+        console.error('Error enhancing prompt:', error);
+        controller.enqueue(encodePayload({ type: 'error', message: 'Error enhancing prompt' }));
+        controller.close();
+      }
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive'
+    }
+  });
 }

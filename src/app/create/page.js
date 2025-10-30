@@ -182,6 +182,119 @@ export default function CreatePage() {
     setPageName(value);
   };
 
+  const streamEnhancedPrompt = async (promptText) => {
+    setEnhancedPromptContent('');
+    setIsEnhancing(true);
+
+    try {
+      const response = await fetch('/api/enhancePrompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptText }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to enhance prompt';
+        try {
+          const errorData = await response.json();
+          if (errorData?.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.error('Error parsing enhance error response:', parseError);
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (!response.body) {
+        throw new Error('Streaming not supported in this environment');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalText = '';
+      let streamError = null;
+
+      const handlePayload = (line) => {
+        const payload = JSON.parse(line);
+        switch (payload.type) {
+          case 'partial':
+            if (typeof payload.text === 'string') {
+              finalText = payload.text;
+              setEnhancedPromptContent(payload.text);
+            }
+            break;
+          case 'complete':
+            if (typeof payload.text === 'string') {
+              finalText = payload.text;
+              setEnhancedPromptContent(payload.text);
+            }
+            break;
+          case 'error':
+            throw new Error(payload.message || 'Error enhancing prompt');
+          default:
+            break;
+        }
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n');
+        buffer = parts.pop() ?? '';
+
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (!trimmed) continue;
+          try {
+            handlePayload(trimmed);
+          } catch (err) {
+            streamError = err;
+            break;
+          }
+        }
+
+        if (streamError) {
+          break;
+        }
+      }
+
+      if (!streamError) {
+        buffer += decoder.decode();
+        const trimmedBuffer = buffer.trim();
+        if (trimmedBuffer) {
+          try {
+            handlePayload(trimmedBuffer);
+          } catch (err) {
+            streamError = err;
+          }
+        }
+      }
+
+      if (streamError) {
+        throw streamError;
+      }
+
+      if (!finalText) {
+        throw new Error('Enhancement ended unexpectedly');
+      }
+
+      const trimmedText = finalText.trim();
+      setEnhancedPromptContent(trimmedText);
+      return trimmedText;
+    } catch (error) {
+      setEnhancedPromptContent('');
+      throw error;
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isFormValid) return;
@@ -197,23 +310,8 @@ export default function CreatePage() {
       let finalPrompt = promptContent;
       
       if (enhancePrompt) {
-        setIsEnhancing(true);
-        setEnhancedPromptContent('');
-        const enhanceResponse = await fetch('/api/enhancePrompt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: promptContent }),
-        });
-        const enhanceData = await enhanceResponse.json();
-        if (enhanceData.enhancedPrompt) {
-          finalPrompt = enhanceData.enhancedPrompt;
-          enhancedPrompt = enhanceData.enhancedPrompt;
-          setEnhancedPromptContent(enhanceData.enhancedPrompt);
-        } else {
-          console.warn('Enhance prompt response missing enhancedPrompt field', enhanceData);
-          setEnhancedPromptContent('');
-        }
-        setIsEnhancing(false);
+        finalPrompt = await streamEnhancedPrompt(promptContent);
+        enhancedPrompt = finalPrompt;
       } else {
         setEnhancedPromptContent('');
       }
@@ -548,20 +646,39 @@ export default function CreatePage() {
                       <label htmlFor="enhancedPrompt" className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
                         Enhanced prompt
                       </label>
-                      <motion.div
-                        animate={isEnhancing ? { opacity: [1, 0.5, 1] } : { opacity: 1 }}
-                        transition={isEnhancing ? { duration: 1, repeat: Infinity } : {}}
-                        className="rounded-2xl border border-indigo-200/70 bg-white/80 p-4 shadow-inner dark:border-indigo-500/30 dark:bg-slate-900/80"
-                      >
-                        <textarea
+                      <div className="relative">
+                        {isEnhancing && (
+                          <motion.div
+                            className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-500/20 via-fuchsia-400/10 to-indigo-500/20"
+                            style={{ backgroundSize: '180% 180%' }}
+                            animate={{ backgroundPosition: ['0% 50%', '100% 50%'] }}
+                            transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
+                          />
+                        )}
+                        <div
                           id="enhancedPrompt"
-                          value={enhancedPromptContent}
-                          readOnly
-                          rows={5}
-                          className="w-full resize-y border-0 bg-transparent text-sm text-slate-800 outline-none dark:text-slate-100"
-                          placeholder={isEnhancing ? "Enhancing prompt..." : "Enhanced prompt will appear here"}
-                        />
-                      </motion.div>
+                          role="status"
+                          aria-live="polite"
+                          aria-busy={isEnhancing}
+                          tabIndex={-1}
+                          className="relative rounded-2xl border border-indigo-200/70 bg-white/80 p-4 shadow-inner outline-none dark:border-indigo-500/30 dark:bg-slate-900/80"
+                        >
+                          <motion.p
+                            animate={isEnhancing ? { opacity: [0.85, 1] } : { opacity: 1 }}
+                            transition={isEnhancing ? { duration: 1.4, repeat: Infinity, repeatType: 'mirror' } : {}}
+                            className="min-h-[160px] whitespace-pre-line text-sm text-slate-800 dark:text-slate-100"
+                          >
+                            {enhancedPromptContent || (isEnhancing ? 'Enhancing prompt...' : 'Enhanced prompt will appear here')}
+                            {isEnhancing && (
+                              <motion.span
+                                className="ml-1 inline-block h-[1.05em] w-[2px] align-middle bg-indigo-500 dark:bg-indigo-300"
+                                animate={{ opacity: [1, 0.2, 1] }}
+                                transition={{ duration: 0.85, repeat: Infinity }}
+                              />
+                            )}
+                          </motion.p>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
