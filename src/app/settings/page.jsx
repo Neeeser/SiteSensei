@@ -24,7 +24,8 @@ export default function SettingsPage() {
         throw new Error('Failed to fetch user data');
       }
       const data = await response.json();
-      setUserData(data);
+      const { role, ...rest } = data;
+      setUserData(rest);
       setOriginalNickname(data.nickname);
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -172,7 +173,7 @@ export default function SettingsPage() {
         className="max-w-md"
       >
         {userData && Object.entries(userData).map(([key, value], index) => {
-          if (key === 'id') return null; // Don't render the id field
+          if (key === 'id' || key === 'role') return null; // Skip non-editable fields
           return (
             <motion.div
               key={key}

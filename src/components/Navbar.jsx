@@ -15,6 +15,8 @@ const Navbar = () => {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [dbUser, setDbUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [nicknameOverride, setNicknameOverride] = useState(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -32,6 +34,28 @@ const Navbar = () => {
         } catch (error) {
           console.error('Error fetching user data:', error);
         }
+
+        try {
+          const roleResponse = await fetch('/api/getUserRole');
+          if (roleResponse.ok) {
+            const roleData = await roleResponse.json();
+            setUserRole(roleData.role);
+            setNicknameOverride(roleData.nickname || null);
+          } else {
+            setUserRole(null);
+            setNicknameOverride(null);
+            console.error('Failed to fetch user role');
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          setUserRole(null);
+          setNicknameOverride(null);
+        }
+      }
+      if (!user) {
+        setDbUser(null);
+        setUserRole(null);
+        setNicknameOverride(null);
       }
     };
 
@@ -47,7 +71,7 @@ const Navbar = () => {
 
   if (!mounted) return null;
 
-  const userNickname = dbUser?.nickname || dbUser?.name?.replace(/\s+/g, '-').toLowerCase();
+  const userNickname = nicknameOverride || dbUser?.nickname || dbUser?.name?.replace(/\s+/g, '-').toLowerCase();
 
   return (
     <nav className="bg-white dark:bg-gray-800 shadow-md">
@@ -67,6 +91,9 @@ const Navbar = () => {
                 <Link href="/create" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary px-3 py-2 rounded-md text-sm font-medium">Create</Link>
                 <Link href="/explore" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary px-3 py-2 rounded-md text-sm font-medium">Explore</Link>
                 <Link href="/pricing" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary px-3 py-2 rounded-md text-sm font-medium">Pricing</Link>
+                {userRole === 'admin' && (
+                  <Link href="/admin" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary px-3 py-2 rounded-md text-sm font-medium">Admin</Link>
+                )}
               </div>
             </div>
           </div>
@@ -100,6 +127,9 @@ const Navbar = () => {
                       <div className="px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary">{dbUser?.name}</div>
                       <Link href={`/profile/${userNickname}`} className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Your Profile</Link>
                       <Link href="/settings" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
+                      {userRole === 'admin' && (
+                        <Link href="/admin" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Admin Dashboard</Link>
+                      )}
                       <Link href="/api/auth/logout" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Logout</Link>
                     </div>
                   )}
@@ -135,6 +165,9 @@ const Navbar = () => {
           <Link href="/create" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Create</Link>
           <Link href="/explore" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Explore</Link>
           <Link href="/pricing" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Pricing</Link>
+          {userRole === 'admin' && (
+            <Link href="/admin" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Admin Dashboard</Link>
+          )}
         </div>
         {user ? (
           <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
@@ -160,6 +193,9 @@ const Navbar = () => {
             <div className="mt-3 px-2 space-y-1">
               <Link href={`/profile/${userNickname}`} className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Your Profile</Link>
               <Link href="/settings" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Settings</Link>
+              {userRole === 'admin' && (
+                <Link href="/admin" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Admin Dashboard</Link>
+              )}
               <Link href="/api/auth/logout" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Logout</Link>
             </div>
           </div>
