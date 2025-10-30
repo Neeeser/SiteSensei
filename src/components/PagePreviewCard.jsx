@@ -44,13 +44,13 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
   const getModelInfo = (model) => {
     switch (model) {
       case 'FREE_MODEL':
-        return { name: 'Free Model', className: 'text-gray-500' };
+        return { name: 'Starter model', className: 'text-slate-400' };
       case 'PRO_MODEL':
-        return { name: 'Pro Model', className: 'text-blue-500 glistening-pro' };
+        return { name: 'Pro model', className: 'text-indigo-500' };
       case 'ADVANCED_MODEL':
-        return { name: 'Advanced Model', className: 'text-purple-500 glistening-advanced' };
+        return { name: 'Advanced model', className: 'text-purple-500' };
       default:
-        return { name: 'Free Model', className: 'text-gray-500' };
+        return { name: 'Starter model', className: 'text-slate-400' };
     }
   };
 
@@ -63,78 +63,88 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
   return (
     <Link href={linkHref} className="no-underline text-inherit">
       <motion.div
-        whileHover={{ scale: 1.03 }}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-transform duration-300 relative"
+        whileHover={{ y: -6 }}
+        className="group relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white/80 shadow-lg backdrop-blur transition dark:border-slate-800/60 dark:bg-slate-900/70"
       >
         {/* Admin controls for delete and favorite */}
         {userRole === 'admin' && (
           <>
             <motion.div
-              className="absolute top-2 left-2 z-20 cursor-pointer"
+              className="absolute left-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-rose-200/60 bg-rose-50/90 text-rose-500 shadow-sm backdrop-blur transition hover:scale-105 hover:shadow-md dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={handleDelete}
             >
-              <Trash2 className="text-red-500 hover:text-red-600" size={24} />
+              <Trash2 size={18} />
             </motion.div>
             <motion.div
-              className="absolute top-2 right-2 z-20 cursor-pointer"
+              className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-amber-200/60 bg-amber-50/90 text-amber-500 shadow-sm backdrop-blur transition hover:scale-105 hover:shadow-md dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={handleFavorite}
             >
               <Star
                 className={`${
-                  page.is_favorited ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'
-                } hover:text-yellow-500`}
-                size={24}
+                  page.is_favorited ? 'text-amber-500 fill-amber-400' : 'text-slate-400'
+                }`}
+                size={18}
               />
             </motion.div>
           </>
         )}
         {/* Preview component container */}
-        <div className="relative w-full" style={{ paddingBottom: `${(previewHeight / previewWidth) * 100}%` }}>
-          <div className="absolute inset-0">
-          <PreviewComponent
-              html={page.html}
-              javascript={page.javascript}
-              width={previewWidth}
-              height={previewHeight}
-              suppressErrors={true}
-              executeJavaScript={false}
-            />
+        <div className="relative w-full">
+          <div
+            className="relative overflow-hidden rounded-3xl border-b border-slate-200/60 bg-slate-900/5 shadow-inner dark:border-slate-800/60"
+            style={{ paddingBottom: `${(previewHeight / previewWidth) * 100}%` }}
+          >
+            <div className="absolute inset-0">
+              <PreviewComponent
+                html={page.html}
+                javascript={page.javascript}
+                width={previewWidth}
+                height={previewHeight}
+                suppressErrors={true}
+                executeJavaScript={false}
+              />
+            </div>
           </div>
         </div>
         {/* Page information */}
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary">
+        <div className="space-y-4 p-5">
+          <div className="flex items-center justify-between">
+            <span className="rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-xs font-medium text-slate-500 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/50 dark:text-slate-400">
               {new Date(page.created_at).toLocaleDateString()}
-            </p>
-            <p className={`text-sm font-medium ${modelInfo.className}`}>
+            </span>
+            <span className={`text-xs font-semibold uppercase tracking-wide ${modelInfo.className}`}>
               {modelInfo.name}
-            </p>
+            </span>
           </div>
-          <h3 className="text-xl font-semibold text-text-light-primary dark:text-text-dark-primary">
-            {page.name || 'Untitled Page'}
-          </h3>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-slate-800 transition group-hover:text-indigo-600 dark:text-slate-100 dark:group-hover:text-indigo-300">
+              {page.name || 'Untitled Page'}
+            </h3>
+            {page.description && (
+              <p className="text-sm text-slate-500 line-clamp-2 dark:text-slate-400">{page.description}</p>
+            )}
+          </div>
         </div>
         {/* User avatar and nickname (if not anonymous) */}
         {!page.is_anonymous && page.users && (
-          <div className="absolute bottom-2 right-2 group z-10">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white dark:border-gray-700 bg-white dark:bg-gray-800 shadow-md">
-              <Image
-                src={getImageSrc(page.users)}
-                alt={page.users.nickname || 'User'}
-                width={40}
-                height={40}
-                className="object-cover"
-              />
-            </div>
-            <div className="absolute bottom-full right-0 mb-2 p-2 bg-white dark:bg-gray-800 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <p className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
+          <div className="absolute bottom-5 right-5 z-10">
+            <div className="relative">
+              <div className="h-11 w-11 overflow-hidden rounded-full border border-white/80 bg-white shadow-md ring-2 ring-indigo-200/70 transition group-hover:ring-indigo-400/80 dark:border-white/10 dark:bg-slate-900 dark:ring-indigo-500/40">
+                <Image
+                  src={getImageSrc(page.users)}
+                  alt={page.users.nickname || 'User'}
+                  width={40}
+                  height={40}
+                  className="object-cover"
+                />
+              </div>
+              <div className="pointer-events-none absolute bottom-full right-0 mb-3 rounded-xl border border-slate-200/70 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-lg opacity-0 transition duration-200 group-hover:opacity-100 dark:border-slate-700/70 dark:bg-slate-900/80 dark:text-slate-300">
                 {page.users.nickname || 'Anonymous User'}
-              </p>
+              </div>
             </div>
           </div>
         )}

@@ -14,7 +14,6 @@ export default function CreatePage() {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [enhancePrompt, setEnhancePrompt] = useState(false);
-  const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('FREE_MODEL');
   const [userRole, setUserRole] = useState('free');
   const [userNickname, setUserNickname] = useState(null);
@@ -25,12 +24,9 @@ export default function CreatePage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [initialDelayPassed, setInitialDelayPassed] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
   const [enhancedPromptContent, setEnhancedPromptContent] = useState("");
   const [isEnhancing, setIsEnhancing] = useState(false);
-  const [showEditChat, setShowEditChat] = useState(false);
-  const [editMessage, setEditMessage] = useState('');
 
   
   const placeholderExamples = [
@@ -138,16 +134,6 @@ export default function CreatePage() {
     setIsFormValid(pageName.trim() !== '' && promptContent.trim() !== '');
   }, [pageName, promptContent]);
 
-  const handleResize = () => {
-    setIsSmallScreen(window.innerWidth < 800);
-  };
-
-  useEffect(() => {
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const handlePageNameChange = (e) => {
     const value = e.target.value.replace(/[^a-z0-9-]/gi, '').toLowerCase();
     setPageName(value);
@@ -226,197 +212,295 @@ export default function CreatePage() {
     return userRole === 'admin' || userRole === 'paid';
   };
 
+  const modelOptions = [
+    {
+      id: 'FREE_MODEL',
+      title: 'Starter',
+      description: 'Fast drafts with the community model',
+    },
+    {
+      id: 'PRO_MODEL',
+      title: 'Pro',
+      description: 'Sharper layouts and better structure',
+    },
+    {
+      id: 'ADVANCED_MODEL',
+      title: 'Advanced',
+      description: 'Experimental reasoning for complex flows',
+    },
+  ];
+
   return (
-    <motion.div 
+    <motion.main 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 1 }}
-      className="container mx-auto px-4 py-8"
+      transition={{ duration: 0.8 }}
+      className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-50 px-4 py-12 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 sm:px-6 lg:px-8"
     >
-      <div className={`max-w-6xl mx-auto ${isSmallScreen ? 'flex flex-col' : 'flex flex-row'} gap-8`}>
-        <motion.div 
-          initial={{ x: -50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-          className="flex-1"
-        >
-          <motion.h1 
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-            className="text-4xl font-bold mb-6 text-text-light-primary dark:text-text-dark-primary"
-          >
-            Web Page Creator
-          </motion.h1>
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.8 }}
-            className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-8"
-          >
-            <h2 className="text-2xl font-semibold mb-4 text-text-light-primary dark:text-text-dark-primary">Generate a Webpage with AI</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="pageName" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Page Name:</label>
-                <input
-                  id="pageName"
-                  type="text"
-                  value={pageName}
-                  onChange={handlePageNameChange}
-                  required
-                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
-                  placeholder="Enter URL-compliant page name (a-z, 0-9, -)"
-                  pattern="^[a-z0-9-]+$"
-                  title="Only lowercase letters, numbers, and hyphens are allowed"
-                />
-              </div>
-              <div>
-                <label className="block text-text-light-primary dark:text-text-dark-primary mb-2">Select Model:</label>
-                <div className="flex gap-4">
-                  {['FREE_MODEL', 'PRO_MODEL', 'ADVANCED_MODEL'].map((model) => (
-                    <label key={model} className={`flex items-center ${!canUseModel(model) ? 'opacity-50' : ''}`}>
-                      <input
-                        type="radio"
-                        name="model"
-                        value={model}
-                        checked={selectedModel === model}
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                        disabled={!canUseModel(model)}
-                        className="mr-2"
-                      />
-                      <span className="text-text-light-secondary dark:text-text-dark-secondary">{model.split('_')[0].toLowerCase()}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label htmlFor="promptContent" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Prompt:</label>
-                <textarea
-                  id="promptContent"
-                  value={promptContent}
-                  onChange={(e) => setPromptContent(e.target.value)}
-                  rows={5}
-                  required
-                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
-                  placeholder={initialLoad || !initialDelayPassed ? "Describe the content you want to generate..." : placeholderText}
-                />
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="enhancePrompt"
-                  checked={enhancePrompt}
-                  onChange={(e) => setEnhancePrompt(e.target.checked)}
-                  className="mr-2"
-                />
-                <label htmlFor="enhancePrompt" className="text-text-light-secondary dark:text-text-dark-secondary">Enhance prompt before generation</label>
-              </div>
-              <AnimatePresence>
-                {enhancePrompt && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <label htmlFor="enhancedPrompt" className="block text-text-light-primary dark:text-text-dark-primary mb-2">Enhanced Prompt:</label>
-                    <motion.div
-                      animate={isEnhancing ? { opacity: [1, 0.5, 1] } : { opacity: 1 }}
-                      transition={isEnhancing ? { duration: 1, repeat: Infinity } : {}}
-                    >
-                      <textarea
-                        id="enhancedPrompt"
-                        value={enhancedPromptContent}
-                        readOnly
-                        rows={5}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary"
-                        placeholder={isEnhancing ? "Enhancing prompt..." : "Enhanced prompt will appear here"}
-                      />
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <motion.button 
-                type="submit" 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`btn btn-primary w-full ${(!isFormValid || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={!isFormValid || isLoading}
-              >
-                {isLoading ? 'Generating...' : 'Generate Content'}
-              </motion.button>
-            </form>
-            {message && (
-              <motion.p 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="mt-4 text-green-600 dark:text-green-400"
-              >
-                {message}
-              </motion.p>
-            )}
-          </motion.div>
-          {isPageGenerated && (
-            <motion.div 
-              initial={{ y: 20, opacity: 0 }}
+      <div className="mx-auto w-full max-w-7xl space-y-10">
+        <div className="grid gap-10 xl:grid-cols-[1.05fr_minmax(0,0.95fr)]">
+          <section className="space-y-10">
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8 }}
-              className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6"
+              transition={{ delay: 0.15, duration: 0.8 }}
+              className="space-y-6"
             >
-              <h2 className="text-xl font-semibold mb-2 text-text-light-primary dark:text-text-dark-primary">View Created Page</h2>
-              <p className="text-text-light-primary dark:text-text-dark-primary">
-                Your page is now available at:{' '}
-                <motion.a 
+              <span className="inline-flex items-center gap-2 rounded-full border border-blue-200/70 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-600 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200">
+                AI-Powered Builder
+              </span>
+              <h1 className="text-4xl font-semibold leading-tight text-slate-900 dark:text-white sm:text-5xl">
+                Create, refine, and launch webpages in minutes.
+              </h1>
+              <p className="max-w-2xl text-base text-slate-600 dark:text-slate-300 sm:text-lg">
+                Describe your vision, pick the right model, and let our builder craft responsive experiences for every screen. Tweak results instantly with the live preview and edit chat.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="rounded-3xl border border-slate-200/70 bg-white/80 p-8 shadow-xl backdrop-blur-sm dark:border-slate-800/60 dark:bg-slate-900/70"
+            >
+              <div className="mb-8 flex flex-col gap-2">
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Generate with confidence</h2>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Keep inputs focused — clear names and detailed prompts lead to the best results.
+                </p>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-7">
+                <div className="space-y-2">
+                  <label htmlFor="pageName" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Page URL slug
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="pageName"
+                      type="text"
+                      value={pageName}
+                      onChange={handlePageNameChange}
+                      required
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-indigo-400 dark:focus:ring-indigo-500/30"
+                      placeholder="my-new-landing-page"
+                      pattern="^[a-z0-9-]+$"
+                      title="Only lowercase letters, numbers, and hyphens are allowed"
+                    />
+                    <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                      slug
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Model</span>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {modelOptions.map((option) => {
+                      const isSelected = selectedModel === option.id;
+                      return (
+                        <label
+                          key={option.id}
+                          className={`relative flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
+                            isSelected
+                              ? 'border-indigo-500/80 bg-indigo-50/80 shadow-lg ring-2 ring-indigo-500/30 dark:border-indigo-400/70 dark:bg-indigo-950/40'
+                              : 'border-slate-200 bg-white/70 shadow-sm dark:border-slate-700 dark:bg-slate-900/70'
+                          } ${!canUseModel(option.id) ? 'pointer-events-none opacity-40' : ''}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-base font-semibold text-slate-900 dark:text-white">
+                              {option.title}
+                            </span>
+                            <span
+                              className={`h-2.5 w-2.5 rounded-full ${
+                                isSelected ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'
+                              }`}
+                            />
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            {option.description}
+                          </p>
+                          <input
+                            type="radio"
+                            name="model"
+                            value={option.id}
+                            checked={selectedModel === option.id}
+                            onChange={(e) => setSelectedModel(e.target.value)}
+                            disabled={!canUseModel(option.id)}
+                            className="sr-only"
+                          />
+                          {!canUseModel(option.id) && (
+                            <span className="text-xs font-medium uppercase tracking-wide text-amber-600 dark:text-amber-300">
+                              Upgrade required
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="promptContent" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    What should we build?
+                  </label>
+                  <textarea
+                    id="promptContent"
+                    value={promptContent}
+                    onChange={(e) => setPromptContent(e.target.value)}
+                    rows={6}
+                    required
+                    className="w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-indigo-400 dark:focus:ring-indigo-500/30"
+                    placeholder={initialLoad || !initialDelayPassed ? "Describe the content you want to generate..." : placeholderText}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60 sm:flex-row sm:items-center sm:justify-between">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      id="enhancePrompt"
+                      checked={enhancePrompt}
+                      onChange={(e) => setEnhancePrompt(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-800"
+                    />
+                    <div>
+                      <span className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        Enhance prompt before generation
+                      </span>
+                      <span className="text-sm text-slate-600 dark:text-slate-300">
+                        We&apos;ll enrich your prompt with additional context for higher-quality output.
+                      </span>
+                    </div>
+                  </label>
+                  {isEnhancing && (
+                    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-indigo-500 dark:text-indigo-300">
+                      <motion.span
+                        animate={{ opacity: [1, 0.3, 1] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                        className="h-2 w-2 rounded-full bg-indigo-500"
+                      />
+                      Enhancing
+                    </span>
+                  )}
+                </div>
+
+                <AnimatePresence>
+                  {enhancePrompt && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <label htmlFor="enhancedPrompt" className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Enhanced prompt
+                      </label>
+                      <motion.div
+                        animate={isEnhancing ? { opacity: [1, 0.5, 1] } : { opacity: 1 }}
+                        transition={isEnhancing ? { duration: 1, repeat: Infinity } : {}}
+                        className="rounded-2xl border border-indigo-200/70 bg-white/80 p-4 shadow-inner dark:border-indigo-500/30 dark:bg-slate-900/80"
+                      >
+                        <textarea
+                          id="enhancedPrompt"
+                          value={enhancedPromptContent}
+                          readOnly
+                          rows={5}
+                          className="w-full resize-y border-0 bg-transparent text-sm text-slate-800 outline-none dark:text-slate-100"
+                          placeholder={isEnhancing ? "Enhancing prompt..." : "Enhanced prompt will appear here"}
+                        />
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <motion.button
+                  type="submit"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 px-6 py-3 text-base font-semibold text-white shadow-lg transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400 disabled:cursor-not-allowed disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-500"
+                  disabled={!isFormValid || isLoading}
+                >
+                  {isLoading ? 'Generating...' : 'Generate content'}
+                </motion.button>
+              </form>
+              {message && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="mt-6 flex items-center gap-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/80 p-4 text-sm font-medium text-emerald-700 shadow-sm dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
+                >
+                  {message}
+                </motion.div>
+              )}
+            </motion.div>
+
+            {isPageGenerated && (
+              <motion.div
+                initial={{ y: 16, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6 }}
+                className="rounded-3xl border border-slate-200/80 bg-white/80 p-6 shadow-lg backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-900/70"
+              >
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Your page is live</h2>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  Share this link and explore it in the preview to continue iterating:
+                </p>
+                <motion.a
                   href={`page/${userNickname || 'anon'}/${pageName}`}
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-primary hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
+                  whileHover={{ x: 4 }}
                 >
                   page/{userNickname || 'anon'}/{pageName}
                 </motion.a>
-              </p>
-            </motion.div>
-          )}
-        </motion.div>
+              </motion.div>
+            )}
+          </section>
 
-        <motion.div 
-          initial={{ x: 50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.8 }}
-          className="w-full lg:w-1/2"
-        >
-          <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6" style={{ height: '600px' }}>
-            <h2 className="text-xl font-semibold mb-4 text-text-light-primary dark:text-text-dark-primary">Preview</h2>
-            <div ref={previewContainerRef} style={{ height: 'calc(100% - 2rem)' }}>
-              <PreviewComponent 
-                html={htmlContent}
-                javascript={jsContent}
-                width={previewSize.width}
-                height={previewSize.height}
-              />
+          <motion.aside
+            initial={{ x: 40, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.35, duration: 0.9 }}
+            className="flex flex-col gap-6"
+          >
+            <div
+              className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 shadow-2xl backdrop-blur-lg dark:border-slate-800/60 dark:bg-slate-900/70"
+              style={{ minHeight: '620px' }}
+            >
+              <div className="flex items-center justify-between border-b border-slate-200/70 px-6 py-4 dark:border-slate-800/60">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Live preview</h2>
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Responsive
+                </span>
+              </div>
+              <div ref={previewContainerRef} className="h-full w-full p-4">
+                <PreviewComponent
+                  html={htmlContent}
+                  javascript={jsContent}
+                  width={previewSize.width}
+                  height={previewSize.height}
+                />
+              </div>
             </div>
-          </div>
-          
 
-         {/* New Edit Chatbox Component */}
-         {user && isPageGenerated && (
-            <EditChatbox
-              isVisible={true}
-              onSubmit={handleEditSubmit}
-              className="mt-6"
-              currentHtml={htmlContent}
-              currentJavascript={jsContent}
-              selectedModel={selectedModel}
-              pageName={pageName}
-              auth0Id={user.sub}
-              userNickname={userNickname}
-            />
-         )}
-        </motion.div>
+            {user && isPageGenerated && (
+              <EditChatbox
+                isVisible={true}
+                onSubmit={handleEditSubmit}
+                currentHtml={htmlContent}
+                currentJavascript={jsContent}
+                selectedModel={selectedModel}
+                pageName={pageName}
+                auth0Id={user.sub}
+                userNickname={userNickname}
+              />
+            )}
+          </motion.aside>
+        </div>
       </div>
-    </motion.div>
+    </motion.main>
   );
 }

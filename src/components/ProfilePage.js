@@ -53,123 +53,139 @@ const ProfilePage = ({ nickname }) => {
 
   if (isLoading || isUserLoading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-      </div>
+      <section className="flex min-h-screen items-center justify-center px-4 py-16">
+        <div className="loading-spinner" />
+      </section>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-full bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary p-4 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl md:text-5xl font-serif mb-4 text-danger">Error</h1>
-          <p className="text-xl">{error}</p>
+      <section className="flex min-h-screen items-center justify-center px-4 py-16">
+        <div className="glass-card max-w-md text-center">
+          <h1 className="text-2xl font-semibold text-rose-500">Something went wrong</h1>
+          <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">{error}</p>
         </div>
-      </div>
+      </section>
     );
   }
 
   if (!profileData) {
     return (
-      <div className="min-h-full bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary p-4 flex items-center justify-center">
+      <section className="flex min-h-screen items-center justify-center px-4 py-16">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center"
+          transition={{ duration: 0.6 }}
+          className="glass-card max-w-lg text-center"
         >
-          <h1 className="text-4xl md:text-5xl font-serif mb-4 text-text-light-primary dark:text-text-dark-primary text-shadow">User Not Found</h1>
-          <p className="text-xl text-text-light-secondary dark:text-text-dark-secondary">The user @{nickname} doesn&apos;t exist.</p>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">User not found</h1>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+            We looked everywhere, but @{nickname} hasn&apos;t joined Site Sensei yet.
+          </p>
         </motion.div>
-      </div>
+      </section>
     );
   }
 
   const isOwnProfile = currentUser && currentUser.nickname === nickname;
 
   return (
-    <div className="min-h-full bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary p-4">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-        className="w-full max-w-7xl mx-auto"
-      >
-        <div className="h-full flex items-center justify-center p-4 bg-background-light dark:bg-background-dark">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-            className="w-full max-w-4xl mx-auto text-center"
+    <motion.main
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+      className="relative min-h-screen px-4 py-12 sm:px-6 lg:px-8"
+    >
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-10 top-32 h-64 w-64 rounded-full bg-indigo-400/20 blur-3xl dark:bg-indigo-500/20" />
+        <div className="absolute right-[-5rem] top-1/2 h-[22rem] w-[22rem] rounded-full bg-purple-400/20 blur-3xl dark:bg-purple-500/20" />
+      </div>
+
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-12">
+        <section className="glass-card flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:text-left">
+          <div className="relative">
+            <div className="h-24 w-24 overflow-hidden rounded-3xl border border-white/80 shadow-xl ring-4 ring-indigo-200/60 transition dark:border-white/10 dark:ring-indigo-500/40">
+              <Image
+                src={profileData.picture}
+                alt="Profile avatar"
+                width={128}
+                height={128}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </div>
+          <div className="flex-1 space-y-4">
+            <div className="flex flex-col gap-2">
+              <span className="pill">{isOwnProfile ? 'Your space' : 'Creator profile'}</span>
+              <h1 className="text-3xl font-semibold text-slate-900 dark:text-white sm:text-4xl">
+                {profileData.name}
+              </h1>
+              <p className="text-base font-medium text-slate-500 dark:text-slate-300">@{profileData.nickname}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="rounded-full border border-slate-200/70 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
+                {profileData.pages.length} published designs
+              </span>
+              {isOwnProfile && (
+                <span className="rounded-full border border-emerald-200/60 bg-emerald-50/80 px-3 py-1 text-xs font-semibold text-emerald-500 shadow-sm dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200">
+                  Visible to the community
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
+                {isOwnProfile ? 'My published pages' : `${profileData.name.split(' ')[0]}'s pages`}
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Scroll to explore every generated project from this profile.
+              </p>
+            </div>
+          </div>
+
+          <InfiniteScroll
+            dataLength={pages.length}
+            next={fetchMorePages}
+            hasMore={hasMore}
+            loader={
+              <div className="loading-container py-12">
+                <div className="loading-spinner" />
+              </div>
+            }
+            endMessage={
+              <p className="mt-12 text-center text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                Nothing more to load — time to create another page.
+              </p>
+            }
+            className="w-full"
+            style={{ overflow: 'visible' }}
           >
             <motion.div
-              initial={{ y: -50, opacity: 0 }}
+              initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
+              transition={{ duration: 0.5 }}
+              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
             >
-              <motion.div
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
-                className="w-16 h-16 mx-auto mb-6"
-              >
-                <Image
-                  src={profileData.picture}
-                  alt="Profile Picture"
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-contain rounded-full"
-                />
-              </motion.div>
-              <h1 className="text-4xl md:text-5xl font-serif mb-4 text-text-light-primary dark:text-text-dark-primary text-shadow">{profileData.name}</h1>
-              <p className="text-xl mb-8 text-text-light-secondary dark:text-text-dark-secondary font-light">@{profileData.nickname}</p>
+              {pages.map((page, index) => (
+                <motion.div
+                  key={page.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.08 * (index % 6), duration: 0.4 }}
+                >
+                  <PagePreviewCard page={page} />
+                </motion.div>
+              ))}
             </motion.div>
-          </motion.div>
-        </div>
-        <motion.h1 
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.8 }}
-          className="text-4xl md:text-5xl font-serif mb-8 text-text-light-primary dark:text-text-dark-primary text-shadow"
-        >
-          {isOwnProfile ? 'My Pages' : `${profileData.name}'s Pages`}
-        </motion.h1>
-        <InfiniteScroll
-          dataLength={pages.length}
-          next={fetchMorePages}
-          hasMore={hasMore}
-          loader={
-            <div className="loading-container">
-              <div className="loading-spinner"></div>
-            </div>
-          }
-          endMessage={<p className="text-center mt-4 text-text-light-secondary dark:text-text-dark-secondary">No more pages to load.</p>}
-          className="w-full"
-          style={{ overflow: 'visible' }}
-        >
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.8, duration: 0.8 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-          >
-            {pages.map((page, index) => (
-              <motion.div
-                key={page.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: .2 * (index % 12), duration: 0.5 }}
-              >
-                <PagePreviewCard
-                  page={page}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        </InfiniteScroll>
-      </motion.div>
-    </div>
+          </InfiniteScroll>
+        </section>
+      </div>
+    </motion.main>
   );
 };
 

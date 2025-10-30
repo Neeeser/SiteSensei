@@ -32,14 +32,27 @@ export default async function AdminPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-text-light-primary dark:text-text-dark-primary">
-        Admin Dashboard
-      </h1>
-      <p className="mb-6 text-text-light-secondary dark:text-text-dark-secondary">
-        Review user activity and manage administrative access.
-      </p>
-      <AdminDashboard />
-    </div>
+    <main className="relative min-h-screen px-4 py-12 sm:px-6 lg:px-8">
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-10 top-24 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl dark:bg-indigo-500/20" />
+        <div className="absolute right-[-6rem] top-1/2 h-96 w-96 rounded-full bg-purple-400/20 blur-3xl dark:bg-purple-500/20" />
+      </div>
+
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <div className="glass-card space-y-4">
+          <span className="pill">Admin tools</span>
+          <div className="space-y-3">
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white sm:text-4xl">
+              Admin Dashboard
+            </h1>
+            <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300 sm:text-base">
+              Review user activity, adjust roles, and make sure premium access stays aligned with your community
+              standards.
+            </p>
+          </div>
+        </div>
+        <AdminDashboard />
+      </div>
+    </main>
   );
 }

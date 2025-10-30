@@ -126,107 +126,122 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="container mx-auto px-4 py-8 flex items-center justify-center h-screen"
-      >
-        <div className="loading-spinner"></div>
-      </motion.div>
+      <section className="flex min-h-screen items-center justify-center px-4 py-16">
+        <div className="loading-spinner" />
+      </section>
     );
   }
 
   if (!user || !userData) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="container mx-auto px-4 py-8 flex items-center justify-center h-screen"
-      >
-        <p className="text-xl">Please log in to access settings.</p>
-      </motion.div>
+      <section className="flex min-h-screen items-center justify-center px-4 py-16">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="glass-card max-w-md text-center"
+        >
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Sign in required</h1>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+            Log in to personalize your profile, manage nicknames, and keep your details current.
+          </p>
+        </motion.div>
+      </section>
     );
   }
 
   return (
-    <motion.div
+    <motion.main
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 1 }}
-      className="container mx-auto px-4 py-8"
+      transition={{ duration: 0.8 }}
+      className="relative min-h-screen px-4 py-12 sm:px-6 lg:px-8"
     >
-      <motion.h1
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.8 }}
-        className="text-2xl font-bold mb-4"
-      >
-        User Settings
-      </motion.h1>
-      <motion.form
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.4, duration: 0.8 }}
-        onSubmit={handleSubmit}
-        className="max-w-md"
-      >
-        {userData && Object.entries(userData).map(([key, value], index) => {
-          if (key === 'id' || key === 'role') return null; // Skip non-editable fields
-          return (
-            <motion.div
-              key={key}
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.6 + index * 0.1, duration: 0.5 }}
-              className="mb-4"
-            >
-              <label htmlFor={key} className="block text-sm font-medium mb-1">
-                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-              </label>
-              <input
-                type={key === 'birthdate' ? 'date' : key === 'phone_number' ? 'tel' : 'text'}
-                id={key}
-                name={key}
-                value={value || ''}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-md ${errors[key] ? 'border-red-500' : ''}`}
-              />
-              {errors[key] && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="text-red-500 text-xs mt-1"
-                >
-                  {errors[key]}
-                </motion.p>
-              )}
-            </motion.div>
-          );
-        })}
-        <motion.button
-          type="submit"
-          disabled={isUpdating || Object.keys(errors).some(key => !!errors[key])}
-          className="btn btn-primary"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          transition={{ duration: 0.2 }}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-10 top-20 h-64 w-64 rounded-full bg-indigo-400/20 blur-3xl dark:bg-indigo-500/20" />
+        <div className="absolute right-[-6rem] top-1/2 h-80 w-80 rounded-full bg-purple-400/20 blur-3xl dark:bg-purple-500/20" />
+      </div>
+
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-10">
+        <header className="space-y-4">
+          <span className="pill">Settings</span>
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-white sm:text-4xl">
+            Tune your profile and account details.
+          </h1>
+          <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300 sm:text-base">
+            Update your display information, nickname, and contact details. Changes apply instantly across your shared
+            pages.
+          </p>
+        </header>
+
+        <motion.form
+          initial={{ y: 16, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          onSubmit={handleSubmit}
+          className="glass-card space-y-8"
         >
-          {isUpdating ? 'Updating...' : 'Update Profile'}
-        </motion.button>
-        {message && (
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mt-4 text-sm"
-          >
-            {message}
-          </motion.p>
-        )}
-      </motion.form>
-    </motion.div>
+          <div className="space-y-6">
+            {userData &&
+              Object.entries(userData).map(([key, value]) => {
+                if (key === 'id' || key === 'role') return null;
+                const label = key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+                const inputType =
+                  key === 'birthdate' ? 'date' : key === 'phone_number' ? 'tel' : key === 'email' ? 'email' : 'text';
+
+                return (
+                  <div key={key} className="space-y-2">
+                    <label htmlFor={key} className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                      {label}
+                    </label>
+                    <input
+                      type={inputType}
+                      id={key}
+                      name={key}
+                      value={value || ''}
+                      onChange={handleInputChange}
+                      className={`w-full rounded-2xl border bg-white/80 px-4 py-3 text-sm text-slate-800 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-500/30 ${
+                        errors[key] ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-200 dark:focus:ring-rose-500/20' : 'border-slate-200'
+                      }`}
+                    />
+                    {errors[key] && (
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="text-xs font-semibold text-rose-500 dark:text-rose-300"
+                      >
+                        {errors[key]}
+                      </motion.p>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <motion.button
+              type="submit"
+              disabled={isUpdating || Object.keys(errors).some((key) => !!errors[key])}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn btn-primary w-full justify-center sm:w-auto"
+            >
+              {isUpdating ? 'Saving changes…' : 'Save profile'}
+            </motion.button>
+            {message && (
+              <motion.span
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="text-sm font-semibold text-emerald-500 dark:text-emerald-300"
+              >
+                {message}
+              </motion.span>
+            )}
+          </div>
+        </motion.form>
+      </div>
+    </motion.main>
   );
 }

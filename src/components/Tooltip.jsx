@@ -65,7 +65,7 @@ const Tooltip = ({ content, children, delay = 400, maxHeight = 200 }) => {
             transition={{ duration: 0.2 }}
           >
             <div
-              className="bg-gray-800 text-white text-sm rounded py-2 px-3 whitespace-normal max-w-xs overflow-y-auto"
+              className="max-w-xs overflow-y-auto rounded-xl border border-slate-200/70 bg-white/90 px-3 py-2 text-xs font-medium text-slate-600 shadow-lg backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/80 dark:text-slate-200"
               style={{ maxHeight: `${maxHeight}px` }}
             >
               {content}

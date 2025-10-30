@@ -68,76 +68,108 @@ const PricingPage = () => {
   };
 
   return (
-    <motion.div
-      className="container mx-auto px-4 py-10"
+    <motion.main
+      className="relative min-h-screen px-4 py-12 sm:px-6 lg:px-8"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
     >
-      <motion.h1
-        className="text-4xl font-bold text-center mb-4 text-text-dark"
-        variants={itemVariants}
-      >
-        Pricing
-      </motion.h1>
-      <motion.p
-        className="text-center text-text-light mb-10 max-w-2xl mx-auto"
-        variants={itemVariants}
-      >
-        Paid plans are almost ready. The Free plan is available now while we put the finishing touches on the Pro
-        and Advanced experiences.
-      </motion.p>
-      <motion.div
-        className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-        variants={itemVariants}
-      >
-        {tiers.map((tier) => (
-          <motion.div
-            key={tier.name}
-            className="relative rounded-2xl border border-primary/15 bg-background p-6 shadow-lg"
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-[-8rem] top-24 h-80 w-80 rounded-full bg-indigo-400/20 blur-3xl dark:bg-indigo-500/20" />
+        <div className="absolute right-[-6rem] top-1/2 h-96 w-96 rounded-full bg-purple-400/20 blur-3xl dark:bg-purple-500/20" />
+      </div>
+
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
+        <header className="space-y-5 text-center">
+          <motion.div variants={itemVariants} className="flex justify-center">
+            <span className="pill">Pricing</span>
+          </motion.div>
+          <motion.h1
+            className="text-4xl font-semibold leading-tight text-slate-900 dark:text-white sm:text-5xl"
             variants={itemVariants}
           >
-            {!tier.available && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-background/85 backdrop-blur-sm">
-                <span className="text-lg font-semibold text-primary">Coming Soon</span>
-                <span className="mt-2 text-sm text-text-light">We&apos;ll let you know as soon as it&apos;s live.</span>
-              </div>
-            )}
-            <div className={tier.available ? "" : "pointer-events-none select-none blur-sm"}>
-              <div className="mb-6 text-center">
-                <h2 className="text-2xl font-semibold text-text-dark">{tier.name}</h2>
-                <p className="mt-2 text-3xl font-bold text-primary">{tier.price}</p>
-                <p className="text-sm text-text-light">{tier.cadence}</p>
-                <p className="mt-4 text-text-light">{tier.description}</p>
-              </div>
-              <ul className="space-y-3">
-                {tier.features.map((feature) => (
-                  <li key={`${tier.name}-${feature.name}`} className="flex items-center gap-3 text-text-dark">
-                    {typeof feature.value === "boolean" ? (
-                      feature.value ? (
-                        <CheckCircle className="text-primary" size={20} />
-                      ) : (
-                        <XCircle className="text-text-light" size={20} />
-                      )
-                    ) : (
-                      <span className="font-semibold text-primary">{feature.value}</span>
-                    )}
-                    <span className="text-sm">{feature.name}</span>
-                  </li>
-                ))}
-              </ul>
-              {tier.available && tier.cta && (
-                <div className="mt-8">
-                  <button className="w-full rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90">
-                    {tier.cta}
-                  </button>
+            Plans for every stage of your creative flow.
+          </motion.h1>
+          <motion.p
+            className="mx-auto max-w-2xl text-base text-slate-600 dark:text-slate-300 sm:text-lg"
+            variants={itemVariants}
+          >
+            Start free today while we finalize Pro and Advanced experiences. Expect flexible usage-based pricing,
+            premium models, and workflow perks tailored to your team.
+          </motion.p>
+        </header>
+
+        <motion.div
+          className="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+          variants={itemVariants}
+        >
+          {tiers.map((tier) => {
+            const tone =
+              tier.name === 'Free'
+                ? 'from-emerald-400/40 via-emerald-500/20 to-emerald-400/10'
+                : tier.name === 'Pro'
+                ? 'from-indigo-400/40 via-indigo-500/20 to-indigo-400/10'
+                : 'from-purple-400/40 via-purple-500/20 to-purple-400/10';
+
+            return (
+              <motion.div
+                key={tier.name}
+                variants={itemVariants}
+                className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white/85 p-8 shadow-xl backdrop-blur dark:border-slate-800/60 dark:bg-slate-900/70"
+              >
+                <div
+                  className={`pointer-events-none absolute inset-x-6 top-0 h-24 rounded-b-full bg-gradient-to-b ${tone} blur-3xl opacity-70`}
+                />
+                {!tier.available && (
+                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-3xl bg-white/80 backdrop-blur-sm dark:bg-slate-950/70">
+                    <span className="text-sm font-semibold uppercase tracking-wide text-indigo-500 dark:text-indigo-300">
+                      Coming soon
+                    </span>
+                    <span className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      We&apos;ll notify you when this tier opens.
+                    </span>
+                  </div>
+                )}
+                <div className={tier.available ? 'relative z-10 space-y-6' : 'relative z-10 space-y-6 opacity-60'}>
+                  <div className="space-y-3 text-center">
+                    <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">{tier.name}</h2>
+                    <div className="flex items-baseline justify-center gap-2 text-slate-900 dark:text-white">
+                      <span className="text-4xl font-bold">{tier.price}</span>
+                      <span className="text-sm font-medium text-slate-500 dark:text-slate-400">/{tier.cadence}</span>
+                    </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-300">{tier.description}</p>
+                  </div>
+                  <ul className="space-y-3">
+                    {tier.features.map((feature) => (
+                      <li
+                        key={`${tier.name}-${feature.name}`}
+                        className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-200"
+                      >
+                        {typeof feature.value === 'boolean' ? (
+                          feature.value ? (
+                            <CheckCircle className="text-emerald-500" size={18} />
+                          ) : (
+                            <XCircle className="text-slate-300 dark:text-slate-700" size={18} />
+                          )
+                        ) : (
+                          <span className="text-indigo-500 dark:text-indigo-300">{feature.value}</span>
+                        )}
+                        <span className="flex-1">{feature.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {tier.available && tier.cta && (
+                    <div className="pt-2">
+                      <button className="btn btn-primary w-full justify-center">{tier.cta}</button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
-    </motion.div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </div>
+    </motion.main>
   );
 };
 

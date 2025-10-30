@@ -116,86 +116,107 @@ export default function ExplorePage() {
   };
 
   return (
-    <motion.div 
+    <motion.main
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 1 }}
-      className="min-h-full bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary p-4"
+      transition={{ duration: 0.8 }}
+      className="relative min-h-screen px-4 py-12 sm:px-6 lg:px-8"
     >
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.8 }}
-        className="w-full max-w-7xl mx-auto"
-      >
-        <motion.h1 
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.8 }}
-          className="text-4xl md:text-5xl font-serif mb-8 text-text-light-primary dark:text-text-dark-primary text-shadow"
-        >
-          Explore
-        </motion.h1>
-       
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
-          className="flex mb-8 space-x-4"
-        >
-          <motion.button
-            whileHover={{ scale: isLoading ? 1 : 1.05 }}
-            whileTap={{ scale: isLoading ? 1 : 0.95 }}
-            className={`btn ${activeView === 'new' ? 'btn-primary' : 'bg-white dark:bg-gray-800 text-text-light-primary dark:text-text-dark-primary border border-gray-300 dark:border-gray-600'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={() => toggleView('new')}
-            disabled={isLoading}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-10 top-28 h-72 w-72 rounded-full bg-indigo-400/30 blur-3xl dark:bg-indigo-500/20" />
+        <div className="absolute right-[-6rem] top-1/2 h-96 w-96 rounded-full bg-purple-400/20 blur-3xl dark:bg-purple-500/20" />
+      </div>
+
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-10">
+        <header className="space-y-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="pill">Discover</span>
+            <span className="rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-xs font-medium text-slate-500 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-400">
+              Curated by the community
+            </span>
+          </div>
+          <div className="space-y-4">
+            <h1 className="text-4xl font-semibold leading-tight text-slate-900 dark:text-white sm:text-5xl">
+              Explore the latest Site Sensei creations.
+            </h1>
+            <p className="max-w-2xl text-base text-slate-600 dark:text-slate-300 sm:text-lg">
+              Browse freshly generated pages and featured standouts. Favorite designs you love or jump in to iterate on
+              the ideas that inspire you.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {[
+              { id: 'new', label: 'New Generations', description: 'Every fresh build from the community' },
+              { id: 'featured', label: 'Featured', description: 'Curated highlights from the team' },
+            ].map((view) => {
+              const isActive = activeView === view.id;
+              return (
+                <button
+                  key={view.id}
+                  onClick={() => toggleView(view.id)}
+                  disabled={isLoading}
+                  className={`group relative flex min-w-[220px] flex-col gap-1 rounded-2xl border p-4 text-left transition ${
+                    isActive
+                      ? 'border-indigo-400/70 bg-indigo-50/70 shadow-lg dark:border-indigo-500/30 dark:bg-indigo-500/10'
+                      : 'border-slate-200/80 bg-white/80 shadow-sm hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-800/60 dark:bg-slate-900/60'
+                  } ${isLoading ? 'cursor-not-allowed opacity-70' : ''}`}
+                >
+                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    {view.label}
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {view.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        <section>
+          <InfiniteScroll
+            dataLength={pages.length}
+            next={fetchPages}
+            hasMore={hasMore}
+            loader={
+              <div className="loading-container py-12">
+                <div className="loading-spinner" />
+              </div>
+            }
+            endMessage={
+              <p className="mt-12 text-center text-sm font-semibold text-slate-400 dark:text-slate-500">
+                You have reached the end of the showcase.
+              </p>
+            }
+            className="w-full"
+            style={{ overflow: 'visible' }}
           >
-            New Generations
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: isLoading ? 1 : 1.05 }}
-            whileTap={{ scale: isLoading ? 1 : 0.95 }}
-            className={`btn ${activeView === 'featured' ? 'btn-primary' : 'bg-white dark:bg-gray-800 text-text-light-primary dark:text-text-dark-primary border border-gray-300 dark:border-gray-600'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={() => toggleView('featured')}
-            disabled={isLoading}
-          >
-            Featured
-          </motion.button>
-        </motion.div>
-  
-        <InfiniteScroll
-          dataLength={pages.length}
-          next={fetchPages}
-          hasMore={hasMore}
-          loader={<div className="loading-container"><div className="loading-spinner"></div></div>}
-          endMessage={<p className="text-center mt-4">No more pages to load.</p>}
-          className="w-full"
-          style={{ overflow: 'visible' }}
-        >
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.8, duration: 0.8 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-          >
-            {pages.map((page, index) => (
-              <motion.div
-                key={page.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * (index % 12), duration: 0.5 }}
-              >
-                <PagePreviewCard
-                  page={page}
-                  userRole={userRole}
-                  onDelete={handleDelete}
-                  onFavorite={handleFavorite}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-        </InfiniteScroll>
-      </motion.div>
-    </motion.div>
+            <motion.div
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.6 }}
+              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            >
+              {pages.map((page, index) => (
+                <motion.div
+                  key={page.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.06 * (index % 8), duration: 0.4 }}
+                >
+                  <PagePreviewCard
+                    page={page}
+                    userRole={userRole}
+                    onDelete={handleDelete}
+                    onFavorite={handleFavorite}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          </InfiniteScroll>
+        </section>
+      </div>
+    </motion.main>
   );
 }

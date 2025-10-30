@@ -14,6 +14,8 @@ const DynamicContent = ({ html, javascript, onInteraction }) => {
       iframe.style.width = '100%';
       iframe.style.height = '100%';
       iframe.style.border = 'none';
+      iframe.style.overflow = 'hidden';
+      iframe.setAttribute('scrolling', 'no');
       containerRef.current.innerHTML = '';
       containerRef.current.appendChild(iframe);
      
@@ -26,11 +28,14 @@ const DynamicContent = ({ html, javascript, onInteraction }) => {
             <base target="_parent">
             <style>
               html, body {
-                height: auto;
-                min-height: 100%;
+                height: 100%;
+                width: 100%;
                 margin: 0;
                 padding: 0;
-                overflow: visible;
+                overflow: hidden;
+              }
+              body {
+                display: block;
               }
             </style>
           </head>
@@ -105,30 +110,30 @@ const DynamicContent = ({ html, javascript, onInteraction }) => {
       
       {/* Display JavaScript errors if any */}
       {jsError && (
-        <div className="absolute bottom-2 right-2 bg-red-100 text-red-700 px-4 py-2 rounded-md text-sm">
-          JavaScript Error: {jsError}
+        <div className="pointer-events-none absolute bottom-4 right-4 rounded-2xl border border-rose-300/60 bg-rose-50/80 px-4 py-2 text-xs font-semibold text-rose-600 shadow-lg dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-200">
+          JavaScript error: {jsError}
         </div>
       )}
       
       {/* Custom alert/confirm dialog */}
       {customAlert && (
-        <div className="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-          <div className="bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+          <div className="glass-card w-full max-w-sm space-y-4">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
               {customAlert.type === 'alert' ? 'Alert' : 'Confirm'}
             </h3>
-            <p className="mb-6">{customAlert.message}</p>
-            <div className="flex justify-end space-x-2">
+            <p className="text-sm text-slate-600 dark:text-slate-300">{customAlert.message}</p>
+            <div className="flex justify-end gap-3">
               <button
                 onClick={handleAlertClose}
-                className="btn btn-primary"
+                className="btn btn-primary min-w-[96px] justify-center"
               >
                 OK
               </button>
               {customAlert.type === 'confirm' && (
                 <button
                   onClick={handleAlertClose}
-                  className="btn bg-gray-300 text-gray-800 hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                  className="btn-tonal min-w-[96px] justify-center"
                 >
                   Cancel
                 </button>

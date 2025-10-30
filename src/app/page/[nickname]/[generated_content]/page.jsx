@@ -166,134 +166,202 @@ export default function DynamicPage({ params }) {
 
   if (isLoading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-      </div>
+      <section className="flex min-h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4 py-16">
+        <div className="loading-spinner" />
+      </section>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-var(--navbar-height))] bg-background-light dark:bg-background-dark">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
-          <h1 className="text-2xl font-bold mb-4">Error</h1>
-          <p className="text-red-500 mb-2">{error}</p>
-          <p>The requested page could not be found.</p>
+      <section className="flex min-h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4 py-16">
+        <div className="glass-card max-w-md text-center">
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Page unavailable</h1>
+          <p className="mt-2 text-sm font-semibold text-rose-500 dark:text-rose-300">{error}</p>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            The requested page could not be found. It may have been removed or set to private.
+          </p>
         </div>
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="flex flex-col items-center h-[calc(100vh-var(--navbar-height))] bg-background-light dark:bg-background-dark">
-      <div className="w-[97.5%] h-[90%] mt-[1.5%] mb-[1%] bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden relative">
-        <div className="w-full h-full overflow-auto">
-          <DynamicContent
-            html={content.html}
-            javascript={content.javascript}
-          />
-        </div>
-        <div className="absolute bottom-4 right-4 z-40">
-          <Tooltip content={tooltipContent}>
-            <div className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 cursor-help">
-              <Info size={24} />
+    <section className="relative min-h-[calc(100vh-var(--navbar-height))] px-4 py-10 sm:px-6 lg:px-8">
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-10 top-16 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl dark:bg-indigo-500/25" />
+        <div className="absolute right-[-6rem] top-1/2 h-96 w-96 rounded-full bg-purple-400/20 blur-3xl dark:bg-purple-500/25" />
+      </div>
+
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+        <div className="glass-panel relative h-[65vh] sm:h-[70vh] lg:h-[75vh] overflow-hidden p-0">
+          <div className="relative h-full w-full overflow-hidden rounded-3xl border border-slate-200/70 bg-white/80 shadow-inner dark:border-slate-800/60 dark:bg-slate-950/40">
+            <div className="absolute inset-0">
+              <DynamicContent html={content.html} javascript={content.javascript} />
             </div>
-          </Tooltip>
+          </div>
+
+          <div className="absolute bottom-6 right-6 z-40">
+            <Tooltip content={tooltipContent}>
+              <button
+                type="button"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-indigo-400/60 bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-500 text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                aria-label="View prompt details"
+              >
+                <Info size={20} />
+              </button>
+            </Tooltip>
+          </div>
+
+          {isCreator && (
+            <div className="absolute right-6 top-6 z-40 flex items-center gap-3">
+              <AnimatePresence>
+                {showEditHint && (
+                  <motion.span
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 12 }}
+                    className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-200"
+                  >
+                    Click to edit
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-600 shadow-md transition hover:-translate-y-0.5 hover:text-indigo-500 dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:text-indigo-300"
+                aria-label="Open editing sidebar"
+              >
+                <Menu size={22} />
+              </button>
+            </div>
+          )}
         </div>
-        {isCreator && (
-          <div className="absolute top-4 right-4 flex items-center">
-            <AnimatePresence>
-              {showEditHint && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="mr-2 bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary px-2 py-1 rounded shadow-md"
-                >
-                  Click to edit
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <button
-              onClick={toggleSidebar}
-              className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200"
-            >
-              <Menu size={24} />
-            </button>
+
+        {revisionError && (
+          <div className="glass-card border-rose-300/60 bg-rose-50/80 text-sm font-semibold text-rose-500 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-200">
+            Error loading revisions: {revisionError}
+          </div>
+        )}
+
+        {!revisionError && revisions.length > 1 && (
+          <div className="glass-panel flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+              Revision {currentRevisionIndex + 1} of {revisions.length}
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigateRevision(1)}
+                disabled={currentRevisionIndex === revisions.length - 1}
+                className="btn btn-tonal justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ChevronLeft size={18} /> Older
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateRevision(-1)}
+                disabled={currentRevisionIndex === 0}
+                className="btn btn-tonal justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Newer <ChevronRight size={18} />
+              </button>
+            </div>
           </div>
         )}
       </div>
-      {revisionError && (
-        <div className="mt-2 text-center text-red-500">
-          Error loading revisions: {revisionError}
-        </div>
-      )}
-      {!revisionError && revisions.length > 1 && (
-        <div className="mt-2 flex items-center justify-center space-x-4">
-          <button
-            onClick={() => navigateRevision(1)}
-            disabled={currentRevisionIndex === revisions.length - 1}
-            className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <span className="text-text-light-secondary dark:text-text-dark-secondary">
-            Revision {currentRevisionIndex + 1} of {revisions.length}
-          </span>
-          <button
-            onClick={() => navigateRevision(-1)}
-            disabled={currentRevisionIndex === 0}
-            className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronRight size={24} />
-          </button>
-        </div>
-      )}
+
       {isCreator && (
         <Sidebar isOpen={isSidebarOpen} onClose={toggleSidebar}>
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold mb-2 text-text-light-primary dark:text-text-dark-primary">Select Model</h3>
-          <div className="flex flex-col gap-2">
-            {['FREE_MODEL', 'PRO_MODEL', 'ADVANCED_MODEL'].map((model) => (
-              <label key={model} className={`flex items-center ${!canUseModel(model) ? 'opacity-50' : ''}`}>
-                <input
-                  type="radio"
-                  name="model"
-                  value={model}
-                  checked={selectedModel === model}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                  disabled={!canUseModel(model)}
-                  className="mr-2"
-                />
-                <span className="text-text-light-secondary dark:text-text-dark-secondary">
-                  {model.split('_')[0].toLowerCase()}
-                </span>
-              </label>
-            ))}
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
+                Preview model
+              </h3>
+              <div className="space-y-3">
+                {[
+                  {
+                    id: 'FREE_MODEL',
+                    title: 'Starter',
+                    description: 'Community model for quick tweaks',
+                  },
+                  {
+                    id: 'PRO_MODEL',
+                    title: 'Pro',
+                    description: 'Sharper layouts with structured output',
+                  },
+                  {
+                    id: 'ADVANCED_MODEL',
+                    title: 'Advanced',
+                    description: 'Experiment with complex behavior',
+                  },
+                ].map((option) => {
+                  const isActive = selectedModel === option.id;
+                  const disabled = !canUseModel(option.id);
+                  return (
+                    <label
+                      key={option.id}
+                      className={`relative flex cursor-pointer flex-col gap-2 rounded-2xl border p-4 transition ${
+                        isActive
+                          ? 'border-indigo-400/70 bg-indigo-50/70 shadow-lg dark:border-indigo-500/40 dark:bg-indigo-500/10'
+                          : 'border-slate-200/70 bg-white/80 shadow-sm hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-800/60 dark:bg-slate-900/70'
+                      } ${disabled ? 'pointer-events-none opacity-40' : ''}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                          {option.title}
+                        </span>
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${
+                            isActive ? 'bg-indigo-500' : 'bg-slate-400 dark:bg-slate-600'
+                          }`}
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{option.description}</p>
+                      <input
+                        type="radio"
+                        name="model"
+                        value={option.id}
+                        checked={isActive}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        disabled={disabled}
+                        className="sr-only"
+                      />
+                      {disabled && (
+                        <span className="text-xs font-semibold uppercase tracking-wide text-amber-500 dark:text-amber-300">
+                          Upgrade required
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <EditChatbox
+              isVisible={true}
+              onSubmit={handleEditSubmit}
+              currentHtml={content.html}
+              currentJavascript={content.javascript}
+              selectedModel={selectedModel}
+              pageName={generated_content}
+              auth0Id={user ? user.sub : null}
+              userNickname={nickname}
+            />
+
+            <motion.button
+              type="button"
+              onClick={handleDownload}
+              className="btn btn-primary w-full justify-center"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Download
+            </motion.button>
           </div>
-        </div>
-        <EditChatbox
-          isVisible={true}
-          onSubmit={handleEditSubmit}
-          currentHtml={content.html}
-          currentJavascript={content.javascript}
-          selectedModel={selectedModel}
-          pageName={generated_content}
-          auth0Id={user ? user.sub : null}
-          userNickname={nickname}
-        />
-        {isCreator && (
-          <motion.button
-            onClick={handleDownload}
-            className="mt-4 btn btn-primary w-full"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Download
-          </motion.button>
-        )}
-      </Sidebar>
-    )}
-  </div>
-);
+        </Sidebar>
+      )}
+    </section>
+  );
 }

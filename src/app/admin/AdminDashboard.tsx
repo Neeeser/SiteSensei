@@ -90,68 +90,57 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="text-text-light-secondary dark:text-text-dark-secondary">
-        Loading users...
+      <div className="flex items-center gap-3 rounded-3xl border border-slate-200/70 bg-white/80 p-6 shadow-lg backdrop-blur dark:border-slate-800/60 dark:bg-slate-900/70">
+        <div className="loading-spinner h-8 w-8 border-2" />
+        <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Loading users…</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-red-600 dark:text-red-400">
+      <div className="glass-card border-rose-300/60 bg-rose-50/70 text-rose-600 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-200">
         {error}
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+    <div className="glass-card overflow-hidden p-0">
       {actionMessage && (
-        <div className="mb-4 text-sm text-text-light-secondary dark:text-text-dark-secondary">
+        <div className="border-b border-slate-200/70 bg-emerald-50/80 px-6 py-3 text-sm font-semibold text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
           {actionMessage}
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-700">
+        <table className="min-w-full divide-y divide-slate-200/70 dark:divide-slate-800/60">
+          <thead className="bg-white/90 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-900/80 dark:text-slate-400">
             <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-200 uppercase tracking-wider">
-                User
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-200 uppercase tracking-wider">
-                Nickname
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-200 uppercase tracking-wider">
-                Role
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-200 uppercase tracking-wider">
-                Generations
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-200 uppercase tracking-wider">
-                Last Login
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-200 uppercase tracking-wider">
-                Created
-              </th>
+              <th className="px-6 py-4">User</th>
+              <th className="px-6 py-4">Nickname</th>
+              <th className="px-6 py-4">Role</th>
+              <th className="px-6 py-4">Generations</th>
+              <th className="px-6 py-4">Last login</th>
+              <th className="px-6 py-4">Created</th>
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-slate-200/60 bg-white/80 text-sm text-slate-700 dark:divide-slate-800/60 dark:bg-slate-950/40 dark:text-slate-200">
             {users.map((user) => (
-              <tr key={user.id}>
-                <td className="px-4 py-3">
-                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              <tr key={user.id} className="transition hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10">
+                <td className="px-6 py-4">
+                  <div className="font-semibold text-slate-800 dark:text-slate-100">
                     {user.name || 'Unnamed'}
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     {user.email || 'No email'}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 font-medium">
                   {user.nickname || '—'}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-6 py-4">
                   <select
-                    className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:cursor-not-allowed dark:border-slate-700/70 dark:bg-slate-900/70 dark:text-slate-200 dark:focus:border-indigo-400 dark:focus:ring-indigo-500/25"
                     value={user.role ?? 'free'}
                     onChange={(event) => handleRoleChange(user.auth0Id, event.target.value)}
                     disabled={updatingUserId === user.auth0Id}
@@ -163,13 +152,13 @@ export default function AdminDashboard() {
                     ))}
                   </select>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-100">
                   {user.generationCount}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 text-xs font-medium text-slate-500 dark:text-slate-400">
                   {formatDateTime(user.lastLogin)}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 text-xs font-medium text-slate-500 dark:text-slate-400">
                   {formatDateTime(user.createdAt)}
                 </td>
               </tr>

@@ -3,15 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { Menu, X, User, Sun, Moon } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Menu, X, User, Sun, Moon, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
+
+const NAV_LINKS = [
+  { href: '/', label: 'Home' },
+  { href: '/create', label: 'Create' },
+  { href: '/explore', label: 'Explore' },
+  { href: '/pricing', label: 'Pricing' },
+];
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const { user, error, isLoading } = useUser();
+  const { user, isLoading } = useUser();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [dbUser, setDbUser] = useState(null);
@@ -22,38 +29,35 @@ const Navbar = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (user) {
-        try {
-          const response = await fetch('/api/user');
-          if (response.ok) {
-            const userData = await response.json();
-            setDbUser(userData);
-          } else {
-            console.error('Failed to fetch user data');
-          }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-        }
+      if (!user) {
+        setDbUser(null);
+        setUserRole(null);
+        setNicknameOverride(null);
+        return;
+      }
 
-        try {
-          const roleResponse = await fetch('/api/getUserRole');
-          if (roleResponse.ok) {
-            const roleData = await roleResponse.json();
-            setUserRole(roleData.role);
-            setNicknameOverride(roleData.nickname || null);
-          } else {
-            setUserRole(null);
-            setNicknameOverride(null);
-            console.error('Failed to fetch user role');
-          }
-        } catch (error) {
-          console.error('Error fetching user role:', error);
+      try {
+        const response = await fetch('/api/user');
+        if (response.ok) {
+          const userData = await response.json();
+          setDbUser(userData);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+
+      try {
+        const roleResponse = await fetch('/api/getUserRole');
+        if (roleResponse.ok) {
+          const roleData = await roleResponse.json();
+          setUserRole(roleData.role);
+          setNicknameOverride(roleData.nickname || null);
+        } else {
           setUserRole(null);
           setNicknameOverride(null);
         }
-      }
-      if (!user) {
-        setDbUser(null);
+      } catch (error) {
+        console.error('Error fetching user role:', error);
         setUserRole(null);
         setNicknameOverride(null);
       }
@@ -62,151 +66,236 @@ const Navbar = () => {
     fetchUserData();
   }, [user]);
 
-  const toggleMenu = () => setIsOpen(!isOpen);
-  const toggleProfile = () => setIsProfileOpen(!isProfileOpen);
+  const toggleMenu = () => setIsOpen((prev) => !prev);
+  const toggleProfile = () => setIsProfileOpen((prev) => !prev);
+  const toggleDarkMode = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
-  const toggleDarkMode = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+  const closeMenus = () => {
+    setIsOpen(false);
+    setIsProfileOpen(false);
   };
+
+  useEffect(() => {
+    const handler = () => closeMenus();
+    window.addEventListener('hashchange', handler);
+    return () => window.removeEventListener('hashchange', handler);
+  }, []);
 
   if (!mounted) return null;
 
-  const userNickname = nicknameOverride || dbUser?.nickname || dbUser?.name?.replace(/\s+/g, '-').toLowerCase();
+  const resolvedUserNickname =
+    nicknameOverride || dbUser?.nickname || dbUser?.name?.replace(/\s+/g, '-').toLowerCase();
+
+  const resolvedLinks =
+    userRole === 'admin' ? [...NAV_LINKS, { href: '/admin', label: 'Admin' }] : NAV_LINKS;
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="Site Sensei Logo"
-              width={32}
-              height={32}
-              className="w-full h-full object-contain"
-            />
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-4">
-                <Link href="/" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary px-3 py-2 rounded-md text-sm font-medium">Home</Link>
-                <Link href="/create" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary px-3 py-2 rounded-md text-sm font-medium">Create</Link>
-                <Link href="/explore" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary px-3 py-2 rounded-md text-sm font-medium">Explore</Link>
-                <Link href="/pricing" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary px-3 py-2 rounded-md text-sm font-medium">Pricing</Link>
-                {userRole === 'admin' && (
-                  <Link href="/admin" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary px-3 py-2 rounded-md text-sm font-medium">Admin</Link>
-                )}
-              </div>
+    <nav className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/70 backdrop-blur-xl transition dark:border-slate-800/60 dark:bg-slate-950/50">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-3">
+            <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-white/70 bg-white/90 shadow-md backdrop-blur dark:border-white/10 dark:bg-slate-900/80">
+              <Image src="/logo.png" alt="Site Sensei Logo" width={22} height={22} />
+            </span>
+            <div className="hidden sm:flex flex-col">
+              <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-white">
+                Site Sensei
+              </span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                Modern web AI studio
+              </span>
             </div>
-          </div>
-          <div className="hidden md:block">
-            <div className="ml-4 flex items-center md:ml-6">
-              <button
-                onClick={toggleDarkMode}
-                className="mr-4 p-2 text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
+          </Link>
+
+          <div className="hidden md:flex items-center gap-2">
+            {resolvedLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 transition hover:-translate-y-0.5 hover:bg-white/80 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-slate-900/70 dark:hover:text-indigo-300"
               >
-                {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="hidden md:flex items-center gap-3">
+          <button
+            onClick={toggleDarkMode}
+            className="rounded-full border border-slate-200/80 bg-white/70 p-2 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-300"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+
+          {isLoading ? (
+            <div className="h-6 w-6 animate-pulse rounded-full bg-slate-200/70 dark:bg-slate-700/70" />
+          ) : user ? (
+            <div className="relative">
+              <button
+                onClick={toggleProfile}
+                className="flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1.5 text-sm font-semibold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-200"
+              >
+                <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-xs font-bold uppercase text-white">
+                  {dbUser?.name?.[0] || user.nickname?.[0] || <User className="h-4 w-4" />}
+                </span>
+                <span>{dbUser?.name?.split(' ')[0] || user.nickname || 'Profile'}</span>
+                <ChevronDown className={`h-4 w-4 transition ${isProfileOpen ? 'rotate-180' : ''}`} />
               </button>
-              {isLoading ? (
-                <div>Loading...</div>
-              ) : user ? (
-                <div className="relative">
-                  <motion.button
-                    onClick={toggleProfile}
-                    className="max-w-xs bg-gray-800 rounded-full flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+              <AnimatePresence>
+                {isProfileOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.18 }}
+                    className="absolute right-0 mt-3 w-56 rounded-2xl border border-slate-200/70 bg-white/90 p-3 text-sm shadow-xl backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/80"
                   >
-                    <span className="sr-only">Open user menu</span>
-                    <img
-                      className="h-8 w-8 rounded-full"
-                      src={user.picture || "/api/placeholder/32/32"}
-                      alt={dbUser?.name || "User profile"}
-                    />
-                  </motion.button>
-                  {isProfileOpen && (
-                    <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                      <div className="px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary">{dbUser?.name}</div>
-                      <Link href={`/profile/${userNickname}`} className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Your Profile</Link>
-                      <Link href="/settings" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
-                      {userRole === 'admin' && (
-                        <Link href="/admin" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Admin Dashboard</Link>
-                      )}
-                      <Link href="/api/auth/logout" className="block px-4 py-2 text-sm text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-600">Logout</Link>
+                    <div className="mb-3 rounded-2xl border border-slate-200/70 bg-white/70 p-3 text-left shadow-sm dark:border-slate-700/70 dark:bg-slate-900/70">
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        {dbUser?.name || user.nickname}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <Link href="/api/auth/login" className="text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary px-3 py-2 rounded-md text-sm font-medium">Login</Link>
-              )}
+                    <div className="space-y-2">
+                      <Link
+                        href={`/profile/${resolvedUserNickname}`}
+                        onClick={closeMenus}
+                        className="block rounded-xl px-3 py-2 font-medium text-slate-600 transition hover:bg-indigo-50/80 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-indigo-500/15 dark:hover:text-indigo-200"
+                      >
+                        Your profile
+                      </Link>
+                      <Link
+                        href="/settings"
+                        onClick={closeMenus}
+                        className="block rounded-xl px-3 py-2 font-medium text-slate-600 transition hover:bg-indigo-50/80 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-indigo-500/15 dark:hover:text-indigo-200"
+                      >
+                        Settings
+                      </Link>
+                      {userRole === 'admin' && (
+                        <Link
+                          href="/admin"
+                          onClick={closeMenus}
+                          className="block rounded-xl px-3 py-2 font-medium text-slate-600 transition hover:bg-indigo-50/80 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-indigo-500/15 dark:hover:text-indigo-200"
+                        >
+                          Admin dashboard
+                        </Link>
+                      )}
+                      <Link
+                        href="/api/auth/logout"
+                        onClick={closeMenus}
+                        className="block rounded-xl px-3 py-2 font-medium text-rose-500 transition hover:bg-rose-50/80 hover:text-rose-600 dark:text-rose-300 dark:hover:bg-rose-500/15"
+                      >
+                        Log out
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
-          <div className="-mr-2 flex md:hidden">
-            <button
-              onClick={toggleMenu}
-              type="button"
-              className="inline-flex items-center justify-center p-2 rounded-md text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
-              aria-controls="mobile-menu"
-              aria-expanded="false"
-            >
-              <span className="sr-only">Open main menu</span>
-              {isOpen ? (
-                <X className="block h-6 w-6" aria-hidden="true" />
-              ) : (
-                <Menu className="block h-6 w-6" aria-hidden="true" />
-              )}
-            </button>
-          </div>
+          ) : (
+            <Link href="/api/auth/login" className="btn btn-primary">
+              Sign in
+            </Link>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 md:hidden">
+          <button
+            onClick={toggleDarkMode}
+            className="rounded-full border border-slate-200/70 bg-white/70 p-2 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-300"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+          <button
+            onClick={toggleMenu}
+            className="inline-flex items-center justify-center rounded-full border border-slate-200/70 bg-white/70 p-2 text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-300"
+            aria-label="Toggle navigation"
+          >
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      <div className={`md:hidden ${isOpen ? 'block' : 'hidden'}`} id="mobile-menu">
-        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white dark:bg-gray-800">
-          <Link href="/" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Home</Link>
-          <Link href="/create" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Create</Link>
-          <Link href="/explore" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Explore</Link>
-          <Link href="/pricing" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Pricing</Link>
-          {userRole === 'admin' && (
-            <Link href="/admin" className="text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700 block px-3 py-2 rounded-md text-base font-medium">Admin Dashboard</Link>
-          )}
-        </div>
-        {user ? (
-          <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center px-5">
-              <div className="flex-shrink-0">
-                <img
-                  className="h-10 w-10 rounded-full"
-                  src={user.picture || "/api/placeholder/40/40"}
-                  alt={dbUser?.name || "User profile"}
-                />
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="md:hidden"
+          >
+            <div className="space-y-4 border-t border-slate-200/70 bg-white/90 px-4 py-5 backdrop-blur dark:border-slate-800/60 dark:bg-slate-950/70">
+              <div className="flex flex-col gap-2">
+                {resolvedLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={closeMenus}
+                    className="rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-slate-700/70 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-indigo-500/50 dark:hover:text-indigo-300"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
               </div>
-              <div className="ml-3">
-                <div className="text-base font-medium text-text-light-primary dark:text-text-dark-primary">{dbUser?.name}</div>
-                <div className="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">{user.email}</div>
-              </div>
-              <button
-                onClick={toggleDarkMode}
-                className="ml-auto flex-shrink-0 p-1 rounded-full text-text-light-primary dark:text-text-dark-primary hover:text-text-light-secondary dark:hover:text-text-dark-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
-              >
-                {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
-              </button>
-            </div>
-            <div className="mt-3 px-2 space-y-1">
-              <Link href={`/profile/${userNickname}`} className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Your Profile</Link>
-              <Link href="/settings" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Settings</Link>
-              {userRole === 'admin' && (
-                <Link href="/admin" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Admin Dashboard</Link>
+              {user ? (
+                <div className="space-y-3 rounded-3xl border border-slate-200/70 bg-white/80 p-4 shadow-lg dark:border-slate-700/70 dark:bg-slate-900/70">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-bold uppercase text-white">
+                      {dbUser?.name?.[0] || user.nickname?.[0] || <User className="h-4 w-4" />}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        {dbUser?.name || user.nickname}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm font-semibold">
+                    <Link
+                      href={`/profile/${resolvedUserNickname}`}
+                      onClick={closeMenus}
+                      className="block rounded-xl px-3 py-2 text-slate-600 transition hover:bg-indigo-50/80 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-indigo-500/15 dark:hover:text-indigo-200"
+                    >
+                      Your profile
+                    </Link>
+                    <Link
+                      href="/settings"
+                      onClick={closeMenus}
+                      className="block rounded-xl px-3 py-2 text-slate-600 transition hover:bg-indigo-50/80 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-indigo-500/15 dark:hover:text-indigo-200"
+                    >
+                      Settings
+                    </Link>
+                    {userRole === 'admin' && (
+                      <Link
+                        href="/admin"
+                        onClick={closeMenus}
+                        className="block rounded-xl px-3 py-2 text-slate-600 transition hover:bg-indigo-50/80 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-indigo-500/15 dark:hover:text-indigo-200"
+                      >
+                        Admin dashboard
+                      </Link>
+                    )}
+                    <Link
+                      href="/api/auth/logout"
+                      onClick={closeMenus}
+                      className="block rounded-xl px-3 py-2 text-rose-500 transition hover:bg-rose-50/80 hover:text-rose-600 dark:text-rose-300 dark:hover:bg-rose-500/15"
+                    >
+                      Log out
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <Link href="/api/auth/login" className="btn btn-primary w-full justify-center">
+                  Sign in to get started
+                </Link>
               )}
-              <Link href="/api/auth/logout" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Logout</Link>
             </div>
-          </div>
-        ) : (
-          <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="px-2 space-y-1">
-              <Link href="/api/auth/login" className="block px-3 py-2 rounded-md text-base font-medium text-text-light-primary dark:text-text-dark-primary hover:bg-gray-100 dark:hover:bg-gray-700">Login</Link>
-            </div>
-          </div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </nav>
   );
 };

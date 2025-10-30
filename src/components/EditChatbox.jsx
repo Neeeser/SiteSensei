@@ -85,14 +85,14 @@ const EditChatbox = ({
           animate={{ opacity: 1, y: 0, ...animationProps.animate }}
           exit={{ opacity: 0, y: 20, ...animationProps.exit }}
           transition={{ duration: 0.5, ...animationProps.transition }}
-          className={`bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 ${className}`}
+          className={`rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-xl backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-900/70 ${className}`}
         >
           {/* Title */}
-          <h3 className="text-lg font-semibold mb-4 text-text-light-primary dark:text-text-dark-primary">
+          <h3 className="text-xl font-semibold mb-3 text-slate-900 dark:text-white">
             {title}
           </h3>
           {/* Description */}
-          <p className="text-text-light-secondary dark:text-text-dark-secondary mb-4">
+          <p className="mb-6 text-sm text-slate-600 dark:text-slate-300">
             {description}
           </p>
           {/* Textarea for edit message */}
@@ -100,18 +100,18 @@ const EditChatbox = ({
             value={editMessage}
             onChange={(e) => setEditMessage(e.target.value)}
             placeholder={placeholder}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text-light-primary dark:text-text-dark-primary mb-4"
+            className="w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-indigo-400 dark:focus:ring-indigo-500/30 mb-4"
             rows={4}
           />
           {/* Error message display */}
           {error && (
-            <p className="text-red-500 mb-4">{error}</p>
+            <p className="text-sm font-medium text-rose-500 dark:text-rose-400 mb-4">{error}</p>
           )}
           {/* Submit button with animation */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`btn btn-primary w-full ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400 ${isLoading ? 'cursor-not-allowed opacity-70' : ''}`}
             onClick={handleSubmit}
             disabled={isLoading}
           >
