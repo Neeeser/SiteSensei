@@ -192,12 +192,13 @@ export default function CreatePage() {
     setStreamingJavascript('');
     setIsStreaming(false);
 
+    let enhancedPrompt = null;
     try {
       let finalPrompt = promptContent;
-      let enhancedPrompt = null;
       
       if (enhancePrompt) {
         setIsEnhancing(true);
+        setEnhancedPromptContent('');
         const enhanceResponse = await fetch('/api/enhancePrompt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -207,9 +208,14 @@ export default function CreatePage() {
         if (enhanceData.enhancedPrompt) {
           finalPrompt = enhanceData.enhancedPrompt;
           enhancedPrompt = enhanceData.enhancedPrompt;
-          setEnhancedPromptContent(finalPrompt);
+          setEnhancedPromptContent(enhanceData.enhancedPrompt);
+        } else {
+          console.warn('Enhance prompt response missing enhancedPrompt field', enhanceData);
+          setEnhancedPromptContent('');
         }
         setIsEnhancing(false);
+      } else {
+        setEnhancedPromptContent('');
       }
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -345,6 +351,9 @@ export default function CreatePage() {
     } finally {
       setIsEnhancing(false);
       setIsLoading(false);
+      if (enhancePrompt) {
+        setEnhancedPromptContent((prev) => prev || enhancedPrompt || '');
+      }
     }
   };
   const canUseModel = (model) => {
