@@ -44,7 +44,7 @@ export default function ExplorePage() {
       }
       const data = await response.json();
 
-      setPages(prevPages => [...prevPages, ...data.pages]);
+      setPages(prevPages => deduplicatePages([...prevPages, ...data.pages]));
       setHasMore(data.hasMore);
       setCurrentPage(prevPage => prevPage + 1);
     } catch (error) {
@@ -70,7 +70,18 @@ export default function ExplorePage() {
       console.error('Error deleting page:', error);
     }
   };
-
+  
+  const deduplicatePages = (pages) => {
+    const uniquePages = {};
+    return pages.filter(page => {
+      if (!uniquePages[page.id]) {
+        uniquePages[page.id] = true;
+        return true;
+      }
+      return false;
+    });
+  };
+  
   const handleFavorite = async (pageId, identifier, isFavorited) => {
     try {
       const response = await fetch(`/api/pages/${identifier}/${pageId}/favorite`, {
