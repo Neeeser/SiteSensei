@@ -4,12 +4,19 @@ import DynamicHtmlRenderer from '../../components/DynamicHtmlRenderer';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import EditChatbox from '../../components/EditChatbox';
+import {
+  HTML_RENDER_MODE,
+  REACT_RENDER_MODE,
+  REACT_PLACEHOLDER_HTML,
+  REACT_SENTINEL
+} from '@/utils/render-modes';
 
 export default function CreatePage() {
   const { user, isLoading: userLoading } = useUser();
   const [pageName, setPageName] = useState('');
   const [htmlContent, setHtmlContent] = useState("");
   const [jsContent, setJsContent] = useState("");
+  const [jsxContent, setJsxContent] = useState("");
   const [promptContent, setPromptContent] = useState("");
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +36,10 @@ export default function CreatePage() {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [streamingHtml, setStreamingHtml] = useState("");
   const [streamingJavascript, setStreamingJavascript] = useState("");
+  const [streamingJsx, setStreamingJsx] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [renderMode, setRenderMode] = useState(HTML_RENDER_MODE);
+  const [contentRenderMode, setContentRenderMode] = useState(HTML_RENDER_MODE);
 
   
   const placeholderExamples = [
@@ -303,7 +313,10 @@ export default function CreatePage() {
     setIsPageGenerated(false);
     setStreamingHtml('');
     setStreamingJavascript('');
+    setStreamingJsx('');
     setIsStreaming(false);
+    setJsxContent('');
+    setContentRenderMode(renderMode);
 
     let enhancedPrompt = null;
     try {
@@ -318,7 +331,7 @@ export default function CreatePage() {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: finalPrompt, model: selectedModel }),
+        body: JSON.stringify({ prompt: finalPrompt, model: selectedModel, renderMode }),
       });
 
       if (!response.ok) {
@@ -348,15 +361,31 @@ export default function CreatePage() {
 
       const handlePayload = (line) => {
         const payload = JSON.parse(line);
+        const payloadMode = payload.renderMode || HTML_RENDER_MODE;
         switch (payload.type) {
-          case 'partial':
-            setStreamingHtml(payload.html || '');
+          case 'partial': {
+            if (payloadMode === REACT_RENDER_MODE) {
+              setStreamingJsx(payload.jsx || '');
+              setStreamingHtml('');
+              setStreamingJavascript('');
+            } else {
+              setStreamingHtml(payload.html || '');
+            }
             break;
-          case 'complete':
+          }
+          case 'complete': {
             finalPayload = payload;
-            setStreamingHtml(payload.html || '');
-            setStreamingJavascript(payload.javascript || '');
+            setContentRenderMode(payloadMode);
+            if (payloadMode === REACT_RENDER_MODE) {
+              setStreamingJsx('');
+              setStreamingHtml('');
+              setStreamingJavascript('');
+            } else {
+              setStreamingHtml(payload.html || '');
+              setStreamingJavascript(payload.javascript || '');
+            }
             break;
+          }
           case 'error':
             throw new Error(payload.message || 'Error generating content');
           default:
@@ -410,11 +439,27 @@ export default function CreatePage() {
         throw new Error('Generation ended unexpectedly');
       }
 
-      const finalHtml = finalPayload.html || '';
-      const finalJavascript = finalPayload.javascript || '';
+      const finalPayloadMode = finalPayload.renderMode || HTML_RENDER_MODE;
+      let finalHtml = '';
+      let finalJavascript = '';
+      let finalJsx = '';
 
-      setStreamingHtml(finalHtml);
-      setStreamingJavascript(finalJavascript);
+      if (finalPayloadMode === REACT_RENDER_MODE) {
+        finalJsx = finalPayload.jsx || '';
+        finalHtml = REACT_PLACEHOLDER_HTML;
+        finalJavascript = `${REACT_SENTINEL}${finalJsx}`;
+        setJsxContent(finalJsx);
+        setStreamingJsx('');
+        setStreamingHtml('');
+        setStreamingJavascript('');
+      } else {
+        finalHtml = finalPayload.html || '';
+        finalJavascript = finalPayload.javascript || '';
+        setStreamingHtml(finalHtml);
+        setStreamingJavascript(finalJavascript);
+        setJsxContent('');
+      }
+
       setIsStreaming(false);
       setHtmlContent(finalHtml);
       setJsContent(finalJavascript);
@@ -427,6 +472,7 @@ export default function CreatePage() {
           page: pageName,
           html: finalHtml,
           javascript: finalJavascript,
+          renderMode: finalPayloadMode,
           auth0Id: user ? user.sub : null,
           model: selectedModel,
           originalPrompt: promptContent,
@@ -477,8 +523,29 @@ export default function CreatePage() {
     },
   ];
 
-  const previewHtml = isStreaming ? streamingHtml : (streamingHtml || htmlContent);
-  const previewJavascript = isStreaming ? '' : (streamingJavascript || jsContent);
+  const renderModeOptions = [
+    {
+      id: HTML_RENDER_MODE,
+      title: 'Instant HTML',
+      description: 'Generate standalone HTML & CSS with inline scripts',
+    },
+    {
+      id: REACT_RENDER_MODE,
+      title: 'React Components',
+      description: 'Author JSX with React 18, MUI, and shadcn primitives',
+    },
+  ];
+
+  const effectiveRenderMode = isStreaming ? renderMode : contentRenderMode;
+  const previewJsx = effectiveRenderMode === REACT_RENDER_MODE
+    ? (isStreaming ? streamingJsx : (streamingJsx || jsxContent))
+    : '';
+  const previewHtml = effectiveRenderMode === REACT_RENDER_MODE
+    ? REACT_PLACEHOLDER_HTML
+    : (isStreaming ? streamingHtml : (streamingHtml || htmlContent));
+  const previewJavascript = effectiveRenderMode === REACT_RENDER_MODE
+    ? ''
+    : (isStreaming ? '' : (streamingJavascript || jsContent));
 
   return (
     <motion.main 
@@ -583,6 +650,52 @@ export default function CreatePage() {
                               Upgrade required
                             </span>
                           )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Output format</span>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {renderModeOptions.map((option) => {
+                      const isSelected = renderMode === option.id;
+                      return (
+                        <label
+                          key={option.id}
+                          className={`relative flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
+                            isSelected
+                              ? 'border-emerald-500/80 bg-emerald-50/80 shadow-lg ring-2 ring-emerald-500/25 dark:border-emerald-400/70 dark:bg-emerald-950/40'
+                              : 'border-slate-200 bg-white/70 shadow-sm dark:border-slate-700 dark:bg-slate-900/70'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-base font-semibold text-slate-900 dark:text-white">
+                              {option.title}
+                            </span>
+                            <span
+                              className={`h-2.5 w-2.5 rounded-full ${
+                                isSelected ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+                              }`}
+                            />
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            {option.description}
+                          </p>
+                          {option.id === REACT_RENDER_MODE && (
+                            <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                              Beta
+                            </span>
+                          )}
+                          <input
+                            type="radio"
+                            name="renderMode"
+                            value={option.id}
+                            checked={renderMode === option.id}
+                            onChange={(e) => setRenderMode(e.target.value)}
+                            className="sr-only"
+                          />
                         </label>
                       );
                     })}
@@ -749,14 +862,16 @@ export default function CreatePage() {
                 <DynamicHtmlRenderer
                   html={previewHtml}
                   javascript={previewJavascript}
+                  jsx={previewJsx}
                   width={previewSize.width}
                   height={previewSize.height}
                   isStreaming={isStreaming}
+                  renderMode={effectiveRenderMode}
                 />
               </div>
             </div>
 
-            {user && isPageGenerated && (
+            {user && isPageGenerated && contentRenderMode === HTML_RENDER_MODE && (
               <EditChatbox
                 isVisible={true}
                 onSubmit={handleEditSubmit}
@@ -767,6 +882,11 @@ export default function CreatePage() {
                 auth0Id={user.sub}
                 userNickname={userNickname}
               />
+            )}
+            {user && isPageGenerated && contentRenderMode === REACT_RENDER_MODE && (
+              <div className="rounded-3xl border border-emerald-200/60 bg-emerald-50/70 p-6 text-sm font-medium text-emerald-800 shadow-inner dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
+                React-based pages are beta. Prompt-based edits are coming soon—regenerate with updated instructions to iterate.
+              </div>
             )}
           </motion.aside>
         </div>

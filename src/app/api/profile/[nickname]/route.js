@@ -1,6 +1,7 @@
 // src/app/api/profile/[nickname]/route.js
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';
+import { HTML_RENDER_MODE, REACT_RENDER_MODE, isReactSnippet } from '@/utils/render-modes';
 
 export async function GET(request, { params }) {
   const { nickname } = params;
@@ -31,15 +32,16 @@ export async function GET(request, { params }) {
     }
 
     // Attach user data to each page
-    const pagesWithUserData = pages.map(page => ({
-        ...page,
-        users: {
-          id: user.id,
-          name: user.name,
-          nickname: user.nickname,
-          picture: user.picture,
-        }
-      }));
+    const pagesWithUserData = pages.map((page) => ({
+      ...page,
+      render_mode: isReactSnippet(page.javascript || '') ? REACT_RENDER_MODE : HTML_RENDER_MODE,
+      users: {
+        id: user.id,
+        name: user.name,
+        nickname: user.nickname,
+        picture: user.picture,
+      }
+    }));
   
       const profileData = {
         ...user,

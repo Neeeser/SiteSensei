@@ -2,6 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';
+import { HTML_RENDER_MODE, REACT_RENDER_MODE, isReactSnippet } from '@/utils/render-modes';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -38,8 +39,13 @@ export async function GET(request) {
 
     if (error) throw error;
 
+    const pagesWithRenderMode = (data || []).map((page) => ({
+      ...page,
+      render_mode: isReactSnippet(page.javascript || '') ? REACT_RENDER_MODE : HTML_RENDER_MODE,
+    }));
+
     return NextResponse.json({
-      pages: data,
+      pages: pagesWithRenderMode,
       totalCount: count,
       hasMore: (page + 1) * pageSize < count
     });

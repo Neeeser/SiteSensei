@@ -3,6 +3,12 @@
 // Import necessary dependencies
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import {
+  HTML_RENDER_MODE,
+  REACT_RENDER_MODE,
+  REACT_SENTINEL
+} from '@/utils/render-modes';
+import { formatReactModuleAllowlist } from '@/utils/react-allowed-modules';
 
 // Initialize OpenAI client with custom configuration for OpenRouter
 const openai = new OpenAI({
@@ -16,6 +22,8 @@ const openai = new OpenAI({
 
 const START_MARKER = '[START_HTML]';
 const END_MARKER = '[END_HTML]';
+const START_JSX_MARKER = '[START_JSX]';
+const END_JSX_MARKER = '[END_JSX]';
 
 // Function to get the appropriate API key based on the selected model
 function getApiKey(model) {
@@ -75,10 +83,12 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { prompt, model } = body || {};
+  const { prompt, model, renderMode: requestedRenderMode } = body || {};
   if (!prompt) {
     return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
   }
+
+  const renderMode = requestedRenderMode === REACT_RENDER_MODE ? REACT_RENDER_MODE : HTML_RENDER_MODE;
 
   const modelName = getApiKey(model);
   console.log('Using model:', modelName);
@@ -87,12 +97,35 @@ export async function POST(request) {
     async start(controller) {
       const encoder = new TextEncoder();
       try {
-        const completionStream = await openai.chat.completions.create({
-          model: modelName,
-          messages: [
-            {
-              role: "system",
-              content: `You are an exceptionally talented front-end engineer with a sharp product sense. You design and build polished, contemporary web experiences that balance aesthetics, accessibility, and performance.
+        const reactAllowlist = formatReactModuleAllowlist();
+        const baseSystemPrompt = renderMode === REACT_RENDER_MODE
+          ? `You are an expert React front-end engineer crafting production-ready single-page experiences.
+
+Runtime constraints:
+- The platform transpiles your code with Babel (presets: react, typescript; plugin: transform-modules-commonjs) and executes it inside an isolated iframe using React 18 and ReactDOM.
+- The runtime strictly allowlists the following imports. Refer only to this set and avoid extra ecosystem packages:
+${reactAllowlist}
+- Do not reference other npm modules, Node.js APIs, or remote script loaders beyond trusted CDNs for static assets (fonts, images).
+- Avoid dynamic imports, require calls, fetch requests, or side effects outside React components. Keep everything client-side and self-contained.
+- Provide structured mock data inline when needed; do not rely on external APIs.
+
+Authoring guidelines:
+1. Export a default React component (function or arrow) that renders the full experience.
+2. Compose modern layouts using the allowed component libraries—lean on @mui/material for layout primitives and forms, and @site-sensei/ui for shadcn-inspired buttons, cards, badges, inputs.
+3. Keep styling declarative via props, sx objects, or tailwind-style className strings; avoid writing arbitrary CSS unless absolutely necessary.
+4. Implement at least one interactive behavior using React state or hooks.
+5. Ensure accessibility by labelling interactive elements, providing alt text, and respecting prefers-reduced-motion where motion is used.
+6. When you need icons, import them from \`@mui/icons-material/<IconName>\`. The platform provides a lightweight fallback set for previewing.
+
+Output format:
+[START_JSX]
+// optional comments
+import React from 'react';
+...
+export default function App() { ... }
+[END_JSX]
+- Do not include explanations outside the markers.`
+          : `You are an exceptionally talented front-end engineer with a sharp product sense. You design and build polished, contemporary web experiences that balance aesthetics, accessibility, and performance.
 
 Rendering context:
 - The platform extracts everything between [START_HTML] and [END_HTML].
@@ -116,14 +149,21 @@ Output format:
   [START_HTML]
   ...HTML with embedded <style> and trailing <script>...
   [END_HTML]
-- Exclude commentary or explanations outside the markers.`
+- Exclude commentary or explanations outside the markers.`;
+
+        const completionStream = await openai.chat.completions.create({
+          model: modelName,
+          messages: [
+            {
+              role: "system",
+              content: baseSystemPrompt
             },
             {
               role: "user",
               content: prompt
             }
           ],
-          temperature: 0.7,
+          temperature: renderMode === REACT_RENDER_MODE ? 0.4 : 0.7,
           stream: true,
           provider: {
             sort: 'price'
@@ -132,7 +172,7 @@ Output format:
 
         let buffer = '';
         let startIndex = -1;
-        let lastSentHtml = '';
+        let lastSentPayload = '';
 
         for await (const chunk of completionStream) {
           const content = chunk.choices?.[0]?.delta?.content || '';
@@ -142,22 +182,34 @@ Output format:
 
           buffer += content;
 
+          const startMarker = renderMode === REACT_RENDER_MODE ? START_JSX_MARKER : START_MARKER;
+          const endMarker = renderMode === REACT_RENDER_MODE ? END_JSX_MARKER : END_MARKER;
+
           if (startIndex === -1) {
-            const markerIndex = buffer.indexOf(START_MARKER);
+            const markerIndex = buffer.indexOf(startMarker);
             if (markerIndex !== -1) {
-              startIndex = markerIndex + START_MARKER.length;
+              startIndex = markerIndex + startMarker.length;
             }
           }
 
           if (startIndex !== -1) {
             const afterStart = buffer.slice(startIndex);
-            const endIndex = afterStart.indexOf(END_MARKER);
-            const htmlSegment = endIndex !== -1 ? afterStart.slice(0, endIndex) : afterStart;
-            const sanitizedHtml = stripPartialScriptContent(htmlSegment);
+            const endIndex = afterStart.indexOf(endMarker);
+            const segment = endIndex !== -1 ? afterStart.slice(0, endIndex) : afterStart;
 
-            if (sanitizedHtml && sanitizedHtml !== lastSentHtml) {
-              lastSentHtml = sanitizedHtml;
-              controller.enqueue(encoder.encode(`${JSON.stringify({ type: 'partial', html: sanitizedHtml })}\n`));
+            if (renderMode === REACT_RENDER_MODE) {
+              const jsxSoFar = segment.trimStart();
+              if (jsxSoFar && jsxSoFar !== lastSentPayload) {
+                lastSentPayload = jsxSoFar;
+                controller.enqueue(encoder.encode(`${JSON.stringify({ type: 'partial', renderMode, jsx: jsxSoFar })}\n`));
+              }
+            } else {
+              const sanitizedHtml = stripPartialScriptContent(segment);
+
+              if (sanitizedHtml && sanitizedHtml !== lastSentPayload) {
+                lastSentPayload = sanitizedHtml;
+                controller.enqueue(encoder.encode(`${JSON.stringify({ type: 'partial', renderMode, html: sanitizedHtml })}\n`));
+              }
             }
 
             if (endIndex !== -1) {
@@ -166,17 +218,34 @@ Output format:
           }
         }
 
-        const fullHtml = extractHtml(buffer);
-        if (!fullHtml) {
-          throw new Error('Failed to extract valid HTML from the generated content');
+        const fullContent = renderMode === REACT_RENDER_MODE
+          ? (() => {
+              const regex = /\[START_JSX\]([\s\S]*?)\[END_JSX\]/;
+              const match = buffer.match(regex);
+              return match ? match[1].trim() : null;
+            })()
+          : extractHtml(buffer);
+
+        if (!fullContent) {
+          throw new Error('Failed to extract valid content from the generated response');
         }
 
-        const { html: htmlWithoutScripts, javascript } = separateJavaScript(fullHtml);
-        controller.enqueue(encoder.encode(`${JSON.stringify({
-          type: 'complete',
-          html: htmlWithoutScripts,
-          javascript
-        })}\n`));
+        if (renderMode === REACT_RENDER_MODE) {
+          controller.enqueue(encoder.encode(`${JSON.stringify({
+            type: 'complete',
+            renderMode,
+            jsx: fullContent,
+            sentinel: REACT_SENTINEL
+          })}\n`));
+        } else {
+          const { html: htmlWithoutScripts, javascript } = separateJavaScript(fullContent);
+          controller.enqueue(encoder.encode(`${JSON.stringify({
+            type: 'complete',
+            renderMode,
+            html: htmlWithoutScripts,
+            javascript
+          })}\n`));
+        }
         controller.close();
       } catch (error) {
         console.error('Error during streaming:', error);

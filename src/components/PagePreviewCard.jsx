@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import PreviewComponent from './PreviewComponent';
 import { Star, Trash2 } from 'lucide-react';
+import { HTML_RENDER_MODE, REACT_RENDER_MODE, isReactSnippet, stripReactSentinel, REACT_PLACEHOLDER_HTML } from '@/utils/render-modes';
 
 // Component for displaying a preview card of a page
 const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userRole, onDelete, onFavorite }) => {
@@ -59,6 +60,11 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
 
   // Determine the link href based on whether the page has a user or is anonymous
   const linkHref = page.users ? `/page/${page.users.nickname}/${page.name}` : `/page/anon/${page.name}`;
+  const renderMode = page.render_mode || (isReactSnippet(page.javascript || '') ? REACT_RENDER_MODE : HTML_RENDER_MODE);
+  const previewHtml = renderMode === REACT_RENDER_MODE ? REACT_PLACEHOLDER_HTML : (page.html || '');
+  const previewJavascript = renderMode === REACT_RENDER_MODE ? '' : (page.javascript || '');
+  const previewJsx = renderMode === REACT_RENDER_MODE ? stripReactSentinel(page.javascript || '') : '';
+  const suppressPreviewErrors = renderMode === HTML_RENDER_MODE;
 
   return (
     <Link href={linkHref} className="no-underline text-inherit">
@@ -100,12 +106,14 @@ const PagePreviewCard = ({ page, previewWidth = 1024, previewHeight = 576, userR
           >
             <div className="absolute inset-0">
               <PreviewComponent
-                html={page.html}
-                javascript={page.javascript}
+                html={previewHtml}
+                javascript={previewJavascript}
+                jsx={previewJsx}
                 width={previewWidth}
                 height={previewHeight}
-                suppressErrors={true}
+                suppressErrors={suppressPreviewErrors}
                 executeJavaScript={false}
+                renderMode={renderMode}
               />
             </div>
           </div>

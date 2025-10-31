@@ -1,6 +1,7 @@
 // src/app/api/content/route.js
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';
+import { HTML_RENDER_MODE, REACT_RENDER_MODE, isReactSnippet } from '@/utils/render-modes';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -47,12 +48,15 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
 
+    const renderMode = isReactSnippet(data.javascript || '') ? REACT_RENDER_MODE : HTML_RENDER_MODE;
+
     return NextResponse.json({
       html: data.html,
       javascript: data.javascript,
       original_prompt: data.original_prompt || "Original prompt not available",
       enhanced_prompt: data.enhanced_prompt || "Enhanced prompt not available",
-      model_used: data.model_used
+      model_used: data.model_used,
+      render_mode: renderMode
     });
   } catch (error) {
     console.error('Error fetching content:', error);

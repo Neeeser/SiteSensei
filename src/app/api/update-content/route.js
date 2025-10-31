@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';  // Adjust the import path as necessary
+import {
+  HTML_RENDER_MODE,
+  REACT_RENDER_MODE,
+  REACT_PLACEHOLDER_HTML,
+  REACT_SENTINEL,
+  isReactSnippet,
+  stripReactSentinel
+} from '@/utils/render-modes';
 
 export async function POST(request) {
   try {
@@ -11,7 +19,8 @@ export async function POST(request) {
       model,
       originalPrompt,
       enhancedPrompt,
-      createdAt
+      createdAt,
+      renderMode
     } = await request.json();
 
     console.log('Received data:', { page, auth0Id, model, createdAt });
@@ -62,10 +71,21 @@ export async function POST(request) {
 
     //console.log('Existing page:', existingPage);
 
+    const incomingJavascript = javascript || '';
+    const normalizedRenderMode = renderMode === REACT_RENDER_MODE || isReactSnippet(incomingJavascript)
+      ? REACT_RENDER_MODE
+      : HTML_RENDER_MODE;
+    const storedHtml = normalizedRenderMode === REACT_RENDER_MODE
+      ? REACT_PLACEHOLDER_HTML
+      : (html || '');
+    const storedJavascript = normalizedRenderMode === REACT_RENDER_MODE
+      ? `${REACT_SENTINEL}${stripReactSentinel(incomingJavascript)}`
+      : incomingJavascript;
+
     const pageData = {
       name: page,
-      html,
-      javascript,
+      html: storedHtml,
+      javascript: storedJavascript,
       is_anonymous: isAnonymous,
       user_id: userId,
       model_used: model,

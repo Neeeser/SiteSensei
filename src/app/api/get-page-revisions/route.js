@@ -1,6 +1,7 @@
 // src/app/api/get-page-revisions/route.js
 import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';  // Adjust the import path as necessary
+import { HTML_RENDER_MODE, REACT_RENDER_MODE, isReactSnippet } from '@/utils/render-modes';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -61,7 +62,12 @@ export async function GET(request) {
     if (revisionsError) throw revisionsError;
 
     // If no revisions are found, return an empty array instead of throwing an error
-    return NextResponse.json(revisions || []);
+    const enhancedRevisions = (revisions || []).map((revision) => ({
+      ...revision,
+      render_mode: isReactSnippet(revision.javascript || '') ? REACT_RENDER_MODE : HTML_RENDER_MODE,
+    }));
+
+    return NextResponse.json(enhancedRevisions);
 
   } catch (error) {
     console.error('Error fetching page revisions:', error);

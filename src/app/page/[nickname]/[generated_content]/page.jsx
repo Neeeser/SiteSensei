@@ -8,6 +8,7 @@ import EditChatbox from '@/components/EditChatbox';
 import { Menu, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import Tooltip from '@/components/Tooltip';
+import { HTML_RENDER_MODE, REACT_RENDER_MODE, isReactSnippet } from '@/utils/render-modes';
 
 export default function DynamicPage({ params }) {
   const { nickname, generated_content } = params;
@@ -15,7 +16,8 @@ export default function DynamicPage({ params }) {
     html: '', 
     javascript: '', 
     original_prompt: '', 
-    enhanced_prompt: '' 
+    enhanced_prompt: '',
+    render_mode: HTML_RENDER_MODE
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -46,12 +48,14 @@ export default function DynamicPage({ params }) {
           throw new Error(`HTTP error! status: ${contentResponse.status}`);
         }
         const contentData = await contentResponse.json();
+        const resolvedRenderMode = contentData.render_mode || (isReactSnippet(contentData.javascript || '') ? REACT_RENDER_MODE : HTML_RENDER_MODE);
 
         setContent({
           html: contentData.html,
           javascript: contentData.javascript,
           original_prompt: contentData.original_prompt,
-          enhanced_prompt: contentData.enhanced_prompt
+          enhanced_prompt: contentData.enhanced_prompt,
+          render_mode: resolvedRenderMode
         });
         setSelectedModel(contentData.model_used || 'FREE_MODEL');
 
@@ -60,7 +64,15 @@ export default function DynamicPage({ params }) {
           const revisionsResponse = await fetch(`/api/get-page-revisions?nickname=${nickname}&pageName=${generated_content}`);
           if (revisionsResponse.ok) {
             const revisionsData = await revisionsResponse.json();
-            setRevisions([contentData, ...revisionsData]);
+            const normalizedCurrent = {
+              ...contentData,
+              render_mode: resolvedRenderMode
+            };
+            const normalizedRevisions = (revisionsData || []).map((revision) => ({
+              ...revision,
+              render_mode: revision.render_mode || (isReactSnippet(revision.javascript || '') ? REACT_RENDER_MODE : HTML_RENDER_MODE),
+            }));
+            setRevisions([normalizedCurrent, ...normalizedRevisions]);
           } else {
             const errorData = await revisionsResponse.json();
             setRevisionError(errorData.error || 'Failed to fetch revisions');
@@ -108,14 +120,23 @@ export default function DynamicPage({ params }) {
   );
 
   const handleEditSubmit = async (newHtml, newJavascript) => {
-    setContent({ html: newHtml, javascript: newJavascript });
+    setContent((prev) => ({
+      ...prev,
+      html: newHtml,
+      javascript: newJavascript,
+      render_mode: HTML_RENDER_MODE
+    }));
 
     
     // Refresh revisions
     const revisionsResponse = await fetch(`/api/get-page-revisions?nickname=${nickname}&pageName=${generated_content}`);
     if (revisionsResponse.ok) {
       const revisionsData = await revisionsResponse.json();
-      setRevisions([{ html: newHtml, javascript: newJavascript }, ...revisionsData]);
+      const normalizedRevisions = (revisionsData || []).map((revision) => ({
+        ...revision,
+        render_mode: revision.render_mode || (isReactSnippet(revision.javascript || '') ? REACT_RENDER_MODE : HTML_RENDER_MODE),
+      }));
+      setRevisions([{ html: newHtml, javascript: newJavascript, render_mode: HTML_RENDER_MODE }, ...normalizedRevisions]);
       setCurrentRevisionIndex(0);
     }
   };
@@ -339,16 +360,22 @@ export default function DynamicPage({ params }) {
               </div>
             </div>
 
-            <EditChatbox
-              isVisible={true}
-              onSubmit={handleEditSubmit}
-              currentHtml={content.html}
-              currentJavascript={content.javascript}
-              selectedModel={selectedModel}
-              pageName={generated_content}
-              auth0Id={user ? user.sub : null}
-              userNickname={nickname}
-            />
+            {content.render_mode === HTML_RENDER_MODE ? (
+              <EditChatbox
+                isVisible={true}
+                onSubmit={handleEditSubmit}
+                currentHtml={content.html}
+                currentJavascript={content.javascript}
+                selectedModel={selectedModel}
+                pageName={generated_content}
+                auth0Id={user ? user.sub : null}
+                userNickname={nickname}
+              />
+            ) : (
+              <div className="rounded-3xl border border-emerald-200/60 bg-emerald-50/80 p-5 text-sm font-medium text-emerald-800 shadow-inner dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
+                This page uses the React beta runtime. Prompt-based edits from this panel are unavailable—regenerate or create a new version with updated instructions.
+              </div>
+            )}
 
             <motion.button
               type="button"

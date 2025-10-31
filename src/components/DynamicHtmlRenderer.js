@@ -1,19 +1,28 @@
 // src/components/DynamicHtmlRenderer.js
 import React, { useEffect, useRef, useState } from 'react';
 import PreviewComponent from './PreviewComponent';
+import { HTML_RENDER_MODE, REACT_RENDER_MODE } from '@/utils/render-modes';
 
 const DynamicHtmlRenderer = ({
   html,
   javascript,
+  jsx = '',
   width,
   height,
   isStreaming = false,
+  renderMode = HTML_RENDER_MODE,
 }) => {
   const [renderedHtml, setRenderedHtml] = useState('');
   const debounceRef = useRef(null);
   const latestHtmlRef = useRef('');
+  const isReactMode = renderMode === REACT_RENDER_MODE;
 
   useEffect(() => {
+    if (isReactMode) {
+      setRenderedHtml(html || '');
+      return;
+    }
+
     const nextHtml = html || '';
     if (latestHtmlRef.current === nextHtml) {
       return;
@@ -38,7 +47,7 @@ const DynamicHtmlRenderer = ({
       setRenderedHtml(latestHtmlRef.current);
       debounceRef.current = null;
     }, 120);
-  }, [html, isStreaming]);
+  }, [html, isStreaming, isReactMode]);
 
   useEffect(() => () => {
     if (debounceRef.current) {
@@ -46,17 +55,21 @@ const DynamicHtmlRenderer = ({
     }
   }, []);
 
-  const hasContent = renderedHtml.trim().length > 0;
+  const hasContent = isReactMode
+    ? (jsx && jsx.trim().length > 0)
+    : renderedHtml.trim().length > 0;
 
   return (
     <div className="relative h-full">
       <PreviewComponent
         html={renderedHtml}
         javascript={javascript}
+        jsx={jsx}
         width={width}
         height={height}
         suppressErrors={isStreaming}
-        executeJavaScript={!isStreaming}
+        executeJavaScript={renderMode === HTML_RENDER_MODE && !isStreaming}
+        renderMode={renderMode}
       />
 
       {isStreaming && (
