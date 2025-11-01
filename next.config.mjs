@@ -54,12 +54,38 @@ function getBasePackageName(specifier = '') {
   return cleaned.split('/')[0];
 }
 
+function findPackageRootFromFile(filePath) {
+  if (!filePath) {
+    return null;
+  }
+
+  let currentDir = path.dirname(filePath);
+  const root = path.parse(currentDir).root;
+
+  while (currentDir && currentDir !== root) {
+    const manifestPath = path.join(currentDir, 'package.json');
+    if (fs.existsSync(manifestPath)) {
+      return currentDir;
+    }
+    currentDir = path.dirname(currentDir);
+  }
+
+  return null;
+}
+
 function getPackageRoot(packageName) {
+  const resolveOptions = { paths: [projectRoot] };
+
   try {
-    const manifestPath = require.resolve(`${packageName}/package.json`, { paths: [projectRoot] });
+    const manifestPath = require.resolve(`${packageName}/package.json`, resolveOptions);
     return path.dirname(manifestPath);
   } catch (error) {
-    return null;
+    try {
+      const entryPath = require.resolve(packageName, resolveOptions);
+      return findPackageRootFromFile(entryPath);
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -147,10 +173,6 @@ const reactRuntimeTraceGlobs = buildRuntimeTraceGlobs([
   ...ALLOWED_REACT_MODULES,
   ...ADDITIONAL_RUNTIME_SPECIFIERS
 ]);
-
-if (!reactRuntimeTraceGlobs.includes('./node_modules/**')) {
-  reactRuntimeTraceGlobs.push('./node_modules/**');
-}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
