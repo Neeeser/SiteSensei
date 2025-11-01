@@ -3,6 +3,7 @@ import * as esbuild from 'esbuild';
 
 const SITE_SENSEI_UI_ALIAS = path.join(process.cwd(), 'src/runtime/site-sensei-ui.js');
 const VIRTUAL_COMPONENT_MODULE = '__SITE_SENSEI_COMPONENT__';
+export const UNSUPPORTED_IMPORT_ERROR_CODE = 'UNSUPPORTED_REACT_IMPORT';
 
 const componentPlugin = (source) => ({
   name: 'site-sensei-virtual-component',
@@ -73,35 +74,63 @@ export async function bundleReactComponent(source) {
     throw new Error('React component source is empty');
   }
 
-  const result = await esbuild.build({
-    stdin: {
-      contents: entryTemplate,
-      resolveDir: process.cwd(),
-      sourcefile: 'site-sensei-entry.tsx',
-      loader: 'tsx'
-    },
-    absWorkingDir: process.cwd(),
-    bundle: true,
-    write: false,
-    format: 'iife',
-    platform: 'browser',
-    target: ['es2018'],
-    minify: true,
-    metafile: false,
-    loader: {
-      '.js': 'jsx',
-      '.jsx': 'jsx',
-      '.ts': 'ts',
-      '.tsx': 'tsx',
-      '.json': 'json'
-    },
-    plugins: [componentPlugin(source), aliasPlugin],
-    define: {
-      'process.env.NODE_ENV': '"production"',
-      'process.env': '{}',
-      global: 'window'
+  const extractUnsupportedModules = (errors = []) => {
+    const missing = new Set();
+    errors.forEach((err) => {
+      const text = err?.text || '';
+      const match = text.match(/Could not resolve \"(.+?)\"/);
+      if (match?.[1]) {
+        missing.add(match[1]);
+      }
+    });
+    return Array.from(missing);
+  };
+
+  let result;
+
+  try {
+    result = await esbuild.build({
+      stdin: {
+        contents: entryTemplate,
+        resolveDir: process.cwd(),
+        sourcefile: 'site-sensei-entry.tsx',
+        loader: 'tsx'
+      },
+      absWorkingDir: process.cwd(),
+      bundle: true,
+      write: false,
+      format: 'iife',
+      platform: 'browser',
+      target: ['es2018'],
+      minify: true,
+      metafile: false,
+      loader: {
+        '.js': 'jsx',
+        '.jsx': 'jsx',
+        '.ts': 'ts',
+        '.tsx': 'tsx',
+        '.json': 'json'
+      },
+      plugins: [componentPlugin(source), aliasPlugin],
+      define: {
+        'process.env.NODE_ENV': '"production"',
+        'process.env': '{}',
+        global: 'window'
+      }
+    });
+  } catch (error) {
+    const unsupportedModules = extractUnsupportedModules(error?.errors);
+    if (unsupportedModules.length > 0) {
+      const list = unsupportedModules.join(', ');
+      const plural = unsupportedModules.length > 1;
+      const message = `This type of site isn't supported yet because it imports ${plural ? 'packages' : 'a package'} that aren't available here: ${list}. Try using the allowed toolkit instead.`;
+      const friendlyError = new Error(message);
+      friendlyError.code = UNSUPPORTED_IMPORT_ERROR_CODE;
+      friendlyError.unsupportedModules = unsupportedModules;
+      throw friendlyError;
     }
-  });
+    throw error;
+  }
 
   if (result.errors && result.errors.length) {
     console.error('esbuild errors:', result.errors);

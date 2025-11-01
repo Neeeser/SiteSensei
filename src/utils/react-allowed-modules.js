@@ -5,11 +5,22 @@ export const ALLOWED_REACT_MODULES = [
   '@emotion/react',
   '@emotion/styled',
   '@mui/material',
+  '@mui/material/styles',
+  '@mui/material/colors',
   '@mui/icons-material/<IconName>',
   '@site-sensei/ui',
+  'framer-motion',
+  'lucide-react',
+  'clsx',
+  'class-variance-authority',
+  'tailwind-merge',
+  '@radix-ui/react-slot',
+  'react-infinite-scroll-component',
   '@react-three/fiber',
   '@react-three/drei',
-  'three'
+  'three',
+  'uuid',
+  'jszip'
 ];
 
 export function formatReactModuleAllowlist() {

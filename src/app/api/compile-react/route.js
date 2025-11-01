@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { bundleReactComponent } from '@/utils/react-bundler';
+import { bundleReactComponent, UNSUPPORTED_IMPORT_ERROR_CODE } from '@/utils/react-bundler';
 import { stripReactSentinel, isReactSnippet } from '@/utils/render-modes';
 
 export async function POST(request) {
@@ -52,9 +52,19 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('React bundling failed:', error);
-    return NextResponse.json(
-      { error: 'Failed to compile React component', details: error?.message },
-      { status: 400 }
-    );
+    const isUnsupportedImport = error?.code === UNSUPPORTED_IMPORT_ERROR_CODE;
+    const responseBody = {
+      error: isUnsupportedImport
+        ? (error?.message || 'This type of site isn\'t supported yet.')
+        : 'Failed to compile React component'
+    };
+
+    if (isUnsupportedImport && Array.isArray(error?.unsupportedModules) && error.unsupportedModules.length) {
+      responseBody.details = `Unsupported imports: ${error.unsupportedModules.join(', ')}`;
+    } else if (!isUnsupportedImport && error?.message && error?.message !== responseBody.error) {
+      responseBody.details = error.message;
+    }
+
+    return NextResponse.json(responseBody, { status: 400 });
   }
 }

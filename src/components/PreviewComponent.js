@@ -309,8 +309,12 @@ const PreviewComponent = ({
 
         {isCompilingReact && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900/5 backdrop-blur-sm">
-            <div className="rounded-full border border-slate-200/60 bg-white/90 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-300">
-              Preparing React bundle…
+            <div className="flex items-center gap-3 rounded-full bg-white/90 px-4 py-2 text-xs font-semibold uppercase text-slate-600 shadow-lg ring-1 ring-slate-200/70 dark:bg-slate-900/80 dark:text-slate-200 dark:ring-slate-700/60">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 opacity-75" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500" />
+              </span>
+              <span className="tracking-[0.35em]">Preparing React bundle…</span>
             </div>
           </div>
         )}
