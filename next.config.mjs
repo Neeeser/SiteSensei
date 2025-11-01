@@ -34,8 +34,15 @@ const reactRuntimeTraceGlobs = [
   './node_modules/three-mesh-bvh/**',
   './node_modules/three-stdlib/**',
   './node_modules/troika-three-text/**',
+  './node_modules/troika-three-utils/**',
+  './node_modules/troika-worker-utils/**',
   './node_modules/tunnel-rat/**',
   './node_modules/uuid/**',
+  './node_modules/prop-types/**',
+  './node_modules/potpack/**',
+  './node_modules/webgl-sdf-generator/**',
+  './node_modules/bidi-js/**',
+  './node_modules/use-sync-external-store/**',
   './node_modules/zustand/**'
 ];
 
