@@ -6,7 +6,10 @@ export const ALLOWED_REACT_MODULES = [
   '@emotion/styled',
   '@mui/material',
   '@mui/icons-material/<IconName>',
-  '@site-sensei/ui'
+  '@site-sensei/ui',
+  '@react-three/fiber',
+  '@react-three/drei',
+  'three'
 ];
 
 export function formatReactModuleAllowlist() {

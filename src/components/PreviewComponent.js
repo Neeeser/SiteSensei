@@ -1,6 +1,14 @@
-// src/components/PreviewComponent.js
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { HTML_RENDER_MODE, REACT_RENDER_MODE } from '@/utils/render-modes';
+
+const INITIAL_BUNDLE_STATE = {
+  code: '',
+  error: null,
+  loading: false,
+  source: ''
+};
+
+const escapeInlineScript = (code = '') => code.replace(/<\/script/gi, '<\\/script');
 
 const PreviewComponent = ({
   html,
@@ -10,288 +18,145 @@ const PreviewComponent = ({
   height,
   suppressErrors = false,
   executeJavaScript = true,
-  renderMode = HTML_RENDER_MODE,
+  renderMode = HTML_RENDER_MODE
 }) => {
   const containerRef = useRef(null);
   const iframeRef = useRef(null);
+  const compiledSourceRef = useRef('');
+  const abortControllerRef = useRef(null);
+
   const [scale, setScale] = useState(1);
   const [customAlert, setCustomAlert] = useState(null);
   const [runtimeError, setRuntimeError] = useState(null);
+  const [bundleState, setBundleState] = useState(INITIAL_BUNDLE_STATE);
+
+  useEffect(() => {
+    const isReactMode = renderMode === REACT_RENDER_MODE;
+
+    if (!isReactMode) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      compiledSourceRef.current = '';
+      setBundleState(INITIAL_BUNDLE_STATE);
+      return;
+    }
+
+    const trimmedSource = (jsx || '').trim();
+
+    if (!trimmedSource) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      compiledSourceRef.current = '';
+      setBundleState(INITIAL_BUNDLE_STATE);
+      return;
+    }
+
+    if (suppressErrors) {
+      setBundleState({
+        code: '',
+        error: null,
+        loading: true,
+        source: trimmedSource
+      });
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      return;
+    }
+
+    if (compiledSourceRef.current === trimmedSource && bundleState.code) {
+      return;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    setRuntimeError(null);
+    setBundleState({
+      code: '',
+      error: null,
+      loading: true,
+      source: trimmedSource
+    });
+
+    (async () => {
+      try {
+        const response = await fetch('/api/compile-react', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsx: trimmedSource }),
+          signal: controller.signal
+        });
+
+        const text = await response.text();
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        let data = {};
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = {};
+          }
+        }
+
+        if (!response.ok) {
+          const message = data.error || data.details || 'Failed to compile React component';
+          throw new Error(message);
+        }
+
+        const bundle = data.bundle || '';
+        compiledSourceRef.current = trimmedSource;
+        setBundleState({
+          code: bundle,
+          error: null,
+          loading: false,
+          source: trimmedSource
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        compiledSourceRef.current = '';
+        setBundleState({
+          code: '',
+          error: error?.message || 'Failed to compile React component',
+          loading: false,
+          source: ''
+        });
+      } finally {
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
+      }
+    })();
+
+    return () => {
+      controller.abort();
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+    };
+  }, [jsx, renderMode, suppressErrors]);
 
   useEffect(() => {
     const isReactMode = renderMode === REACT_RENDER_MODE;
     let iframeContent = '';
-    setRuntimeError(null);
 
     if (isReactMode) {
-      const shouldExecute = !suppressErrors && jsx && jsx.trim().length > 0;
-      const jsxPayload = JSON.stringify(jsx || '');
-      const reactScripts = `
-        <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
-        <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
-        <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js" crossorigin></script>
-        <script src="https://unpkg.com/@emotion/react@11.11.4/dist/emotion-react.umd.min.js" crossorigin></script>
-        <script src="https://unpkg.com/@emotion/styled@11.11.5/dist/emotion-styled.umd.min.js" crossorigin></script>
-        <script src="https://unpkg.com/@mui/material@5.15.13/umd/material-ui.production.min.js" crossorigin></script>
-      `;
-
-      const bootstrapScript = `
-        <script>
-          window.alert = function(message) {
-            window.parent.postMessage({ type: 'alert', message: message }, '*');
-          };
-          window.confirm = function(message) {
-            window.parent.postMessage({ type: 'confirm', message: message }, '*');
-            return false;
-          };
-          const classNames = (...values) => values.filter(Boolean).join(' ');
-          window.SiteSenseiUI = (function(React) {
-            const { forwardRef } = React;
-
-            const Button = forwardRef(function Button({ variant = 'primary', className = '', size = 'md', ...rest }, ref) {
-              const sizes = {
-                sm: 'px-3 py-1.5 text-xs',
-                md: 'px-4 py-2 text-sm',
-                lg: 'px-5 py-2.5 text-base'
-              };
-              const variants = {
-                primary: 'bg-emerald-500 text-white hover:bg-emerald-600',
-                secondary: 'bg-slate-900 text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white',
-                outline: 'border border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-400 dark:text-emerald-200 dark:hover:bg-emerald-500/10',
-                ghost: 'bg-transparent text-emerald-600 hover:bg-emerald-50 dark:text-emerald-200 dark:hover:bg-emerald-500/10'
-              };
-              return React.createElement(
-                'button',
-                {
-                  ref,
-                  className: classNames(
-                    'inline-flex items-center justify-center gap-2 rounded-full font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60',
-                    sizes[size] || sizes.md,
-                    variants[variant] || variants.primary,
-                    className
-                  ),
-                  ...rest
-                }
-              );
-            });
-
-            const Card = ({ className = '', ...props }) =>
-              React.createElement('div', {
-                className: classNames('rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-lg dark:border-slate-800 dark:bg-slate-900/70', className),
-                ...props
-              });
-
-            const CardHeader = ({ className = '', ...props }) =>
-              React.createElement('div', {
-                className: classNames('mb-4 flex flex-col gap-2', className),
-                ...props
-              });
-
-            const CardContent = ({ className = '', ...props }) =>
-              React.createElement('div', {
-                className: classNames('space-y-4', className),
-                ...props
-              });
-
-            const Badge = ({ className = '', variant = 'neutral', ...rest }) => {
-              const variants = {
-                neutral: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
-                success: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200',
-                warning: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-                info: 'bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-200'
-              };
-              return React.createElement('span', {
-                className: classNames('inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide', variants[variant] || variants.neutral, className),
-                ...rest
-              });
-            };
-
-            const Input = forwardRef(function Input({ className = '', ...rest }, ref) {
-              return React.createElement('input', {
-                ref,
-                className: classNames('w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-emerald-400 dark:focus:ring-emerald-500/30', className),
-                ...rest
-              });
-            });
-
-            const Textarea = forwardRef(function Textarea({ className = '', rows = 4, ...rest }, ref) {
-              return React.createElement('textarea', {
-                ref,
-                rows,
-                className: classNames('w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-emerald-400 dark:focus:ring-emerald-500/30', className),
-                ...rest
-              });
-            });
-
-            const SectionTitle = ({ className = '', ...rest }) =>
-              React.createElement('h2', {
-                className: classNames('text-lg font-semibold text-slate-900 dark:text-white', className),
-                ...rest
-              });
-
-            return {
-              Button,
-              Card,
-              CardHeader,
-              CardContent,
-              Badge,
-              Input,
-              Textarea,
-              SectionTitle
-            };
-          })(window.React);
-
-          window.SiteSenseiCreateIcon = (function(React) {
-            const cache = new Map();
-
-            function titleCase(label) {
-              return label
-                .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-                .replace(/[-_]+/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-            }
-
-            return function resolveIcon(iconName) {
-              if (cache.has(iconName)) {
-                return cache.get(iconName);
-              }
-
-              const displayName = titleCase(iconName || 'Icon') || 'Icon';
-              const Icon = React.forwardRef(function SiteSenseiIcon(
-                { fontSize = 'medium', htmlColor, sx = {}, ...rest },
-                ref
-              ) {
-                const size =
-                  fontSize === 'small'
-                    ? 20
-                    : fontSize === 'large'
-                    ? 32
-                    : fontSize === 'inherit'
-                    ? '1em'
-                    : 24;
-
-                const numericSize = typeof size === 'number' ? size : null;
-
-                const style = {
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: numericSize !== null ? numericSize + 'px' : size,
-                  height: numericSize !== null ? numericSize + 'px' : size,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                  color: htmlColor || 'currentColor',
-                  fontSize: numericSize !== null ? Math.max(10, numericSize * 0.55) + 'px' : '1em',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  padding: '0.25em',
-                  ...sx
-                };
-
-                return React.createElement(
-                  'span',
-                  {
-                    ref,
-                    role: 'img',
-                    'aria-label': displayName,
-                    style,
-                    ...rest
-                  },
-                  displayName.slice(0, 2)
-                );
-              });
-
-              Icon.muiName = displayName.replace(/\s+/g, '') + 'Icon';
-              cache.set(iconName, Icon);
-              return Icon;
-            };
-          })(window.React);
-
-          window.SiteSenseiIcons = new Proxy(
-            {},
-            {
-              get: (_, prop) => window.SiteSenseiCreateIcon(String(prop))
-            }
-          );
-
-          window.SiteSenseiModuleRegistry = {
-            react: window.React,
-            'react-dom': window.ReactDOM,
-            'react-dom/client': window.ReactDOM,
-            '@emotion/react': window.emotionReact,
-            '@emotion/styled': window.emotionStyled,
-            '@mui/material': window.MaterialUI,
-            '@site-sensei/ui': window.SiteSenseiUI,
-            '@mui/icons-material': window.SiteSenseiIcons
-          };
-        </script>
-      `;
-
-      const executionScript = shouldExecute ? `
-        <script>
-          (function() {
-            const jsxSource = ${jsxPayload};
-            if (!jsxSource.trim()) {
-              return;
-            }
-
-            if (!window.React || !window.ReactDOM || !window.Babel) {
-              throw new Error('React runtime failed to load.');
-            }
-
-            try {
-              const transformed = window.Babel.transform(jsxSource, {
-                filename: 'site-sensei-component.tsx',
-                presets: [['react', { runtime: 'classic' }], 'typescript'],
-                plugins: ['transform-modules-commonjs']
-              }).code;
-
-              const siteSenseiRequire = (name) => {
-                if (name === '@mui/icons-material') {
-                  return window.SiteSenseiIcons;
-                }
-
-                if (name?.startsWith('@mui/icons-material/')) {
-                  const iconKey = name.replace('@mui/icons-material/', '');
-                  return window.SiteSenseiCreateIcon(iconKey);
-                }
-
-                const mod = window.SiteSenseiModuleRegistry[name];
-                if (mod) {
-                  return mod;
-                }
-                throw new Error('Unsupported import: ' + name);
-              };
-
-              const module = { exports: {} };
-              const exports = module.exports;
-              const factory = new Function('require', 'module', 'exports', transformed);
-              factory(siteSenseiRequire, module, exports);
-
-              const Component = module.exports.default || module.exports;
-              if (typeof Component !== 'function') {
-                throw new Error('Default export must be a React component.');
-              }
-
-              const rootNode = document.getElementById('site-sensei-root');
-              if (!rootNode) {
-                throw new Error('Missing #site-sensei-root element.');
-              }
-
-              if (window.__SITE_SENSEI_ROOT__) {
-                window.__SITE_SENSEI_ROOT__.unmount();
-              }
-              window.__SITE_SENSEI_ROOT__ = window.ReactDOM.createRoot(rootNode);
-              window.__SITE_SENSEI_ROOT__.render(window.React.createElement(Component));
-            } catch (error) {
-              window.parent.postMessage({ type: 'jsError', message: error.message }, '*');
-              console.error(error);
-            }
-          })();
-        </script>
-      ` : '';
+      const shouldExecute = !suppressErrors && !bundleState.loading && Boolean(bundleState.code);
+      const escapedBundle = escapeInlineScript(bundleState.code || '');
 
       iframeContent = `
         <!DOCTYPE html>
@@ -310,9 +175,25 @@ const PreviewComponent = ({
           </head>
           <body>
             <div id="site-sensei-root" style="min-height: 100vh;"></div>
-            ${reactScripts}
-            ${bootstrapScript}
-            ${executionScript}
+            <script>
+              window.alert = function(message) {
+                window.parent.postMessage({ type: 'alert', message: message }, '*');
+              };
+              window.confirm = function(message) {
+                window.parent.postMessage({ type: 'confirm', message: message }, '*');
+                return false;
+              };
+            </script>
+            ${shouldExecute ? `
+              <script>
+                try {
+                  ${escapedBundle}
+                } catch (error) {
+                  window.parent.postMessage({ type: 'jsError', message: error?.message || 'Runtime error' }, '*');
+                  console.error(error);
+                }
+              </script>
+            ` : ''}
           </body>
         </html>
       `;
@@ -378,7 +259,7 @@ const PreviewComponent = ({
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [html, javascript, jsx, suppressErrors, executeJavaScript, renderMode]);
+  }, [html, javascript, suppressErrors, executeJavaScript, renderMode, bundleState.code, bundleState.loading]);
 
   useEffect(() => {
     const calculateScale = () => {
@@ -395,31 +276,53 @@ const PreviewComponent = ({
     return () => window.removeEventListener('resize', calculateScale);
   }, [width, height]);
 
+  useEffect(() => {
+    if (!bundleState.error) {
+      return;
+    }
+    setRuntimeError(bundleState.error);
+  }, [bundleState.error]);
+
   const handleAlertClose = () => {
     setCustomAlert(null);
   };
 
+  const isReactMode = renderMode === REACT_RENDER_MODE;
+  const isCompilingReact = isReactMode && (bundleState.loading || suppressErrors);
+
   return (
     <div ref={containerRef} className="w-full h-full overflow-hidden relative">
-      <div style={{
-        transform: `scale(${scale})`,
-        transformOrigin: 'top left',
-        width: `${width}px`,
-        height: `${height}px`,
-      }}>
+      <div
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          width: `${width}px`,
+          height: `${height}px`
+        }}
+      >
         <iframe
           ref={iframeRef}
           title="Page Preview"
           className="w-full h-full border-none pointer-events-none"
-          sandbox={(renderMode === REACT_RENDER_MODE || executeJavaScript) ? "allow-scripts" : ""}
+          sandbox={(renderMode === REACT_RENDER_MODE || executeJavaScript) ? 'allow-scripts' : ''}
         />
+
+        {isCompilingReact && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/5 backdrop-blur-sm">
+            <div className="rounded-full border border-slate-200/60 bg-white/90 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/80 dark:text-slate-300">
+              Preparing React bundle…
+            </div>
+          </div>
+        )}
+
         {runtimeError && (
           <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-rose-300/60 bg-rose-50/90 px-4 py-3 text-xs font-semibold text-rose-600 shadow-lg dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-200">
             {runtimeError}
           </div>
         )}
+
         {customAlert && (
-          <div className="absolute inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gray-600/60 flex items-center justify-center">
             <div className="bg-gray-800 text-gray-200 rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
               <h3 className="text-lg font-semibold mb-4">
                 {customAlert.type === 'alert' ? 'Alert' : 'Confirm'}
