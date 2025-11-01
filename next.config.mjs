@@ -5,7 +5,7 @@ import { createRequire } from 'module';
 const projectRoot = process.cwd();
 const require = createRequire(import.meta.url);
 
-const { ALLOWED_REACT_MODULES } = await import('./src/utils/react-allowed-modules.js');
+const { ALLOWED_REACT_MODULES } = await import('./src/utils/react-allowed-modules.mjs');
 
 const ADDITIONAL_RUNTIME_SPECIFIERS = [
   'react',

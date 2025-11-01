@@ -8,7 +8,7 @@ import {
   REACT_RENDER_MODE,
   REACT_SENTINEL
 } from '@/utils/render-modes';
-import { formatReactModuleAllowlist } from '@/utils/react-allowed-modules';
+import { formatReactModuleAllowlist } from '@/utils/react-allowed-modules.mjs';
 
 // Initialize OpenAI client with custom configuration for OpenRouter
 const openai = new OpenAI({
