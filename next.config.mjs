@@ -1,3 +1,11 @@
+const reactRuntimeTraceGlobs = [
+  './node_modules/react/**',
+  './node_modules/react-dom/**',
+  './node_modules/@react-three/fiber/**',
+  './node_modules/@react-three/drei/**',
+  './node_modules/three/**'
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -19,6 +27,11 @@ const nextConfig = {
         hostname: '*.auth0.com',
       },
     ],
+  },
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/compile-react': reactRuntimeTraceGlobs,
+    },
   },
   webpack: (config, { isServer }) => {
     if (isServer) {

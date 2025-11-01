@@ -21,13 +21,26 @@ const componentPlugin = (source) => ({
   }
 });
 
+const aliasEntries = [
+  ['@site-sensei/ui', SITE_SENSEI_UI_ALIAS],
+  ['@site-sensei/ui/index', SITE_SENSEI_UI_ALIAS]
+];
+
 const aliasPlugin = {
   name: 'site-sensei-alias',
   setup(build) {
-    build.onResolve({ filter: /^@site-sensei\/ui(?:\/index)?$/ }, () => ({
-      path: SITE_SENSEI_UI_ALIAS,
-      namespace: 'file'
-    }));
+    const aliasMap = new Map(aliasEntries);
+
+    build.onResolve({ filter: /.*/ }, (args) => {
+      if (!aliasMap.has(args.path)) {
+        return undefined;
+      }
+
+      return {
+        path: aliasMap.get(args.path),
+        namespace: 'file'
+      };
+    });
   }
 };
 
