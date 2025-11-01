@@ -1,50 +1,152 @@
-const reactRuntimeTraceGlobs = [
-  './node_modules/@babel/runtime/**',
-  './node_modules/@emotion/**',
-  './node_modules/@mediapipe/**',
-  './node_modules/@monogrid/**',
-  './node_modules/@mui/**',
-  './node_modules/@radix-ui/**',
-  './node_modules/@react-spring/**',
-  './node_modules/@react-three/**',
-  './node_modules/@use-gesture/**',
-  './node_modules/camera-controls/**',
-  './node_modules/class-variance-authority/**',
-  './node_modules/clsx/**',
-  './node_modules/detect-gpu/**',
-  './node_modules/framer-motion/**',
-  './node_modules/hls.js/**',
-  './node_modules/its-fine/**',
-  './node_modules/jszip/**',
-  './node_modules/lucide-react/**',
-  './node_modules/maath/**',
-  './node_modules/meshline/**',
-  './node_modules/react/**',
-  './node_modules/react-composer/**',
-  './node_modules/react-dom/**',
-  './node_modules/react-infinite-scroll-component/**',
-  './node_modules/react-reconciler/**',
-  './node_modules/react-use-measure/**',
-  './node_modules/scheduler/**',
-  './node_modules/stats-gl/**',
-  './node_modules/stats.js/**',
-  './node_modules/suspend-react/**',
-  './node_modules/tailwind-merge/**',
-  './node_modules/three/**',
-  './node_modules/three-mesh-bvh/**',
-  './node_modules/three-stdlib/**',
-  './node_modules/troika-three-text/**',
-  './node_modules/troika-three-utils/**',
-  './node_modules/troika-worker-utils/**',
-  './node_modules/tunnel-rat/**',
-  './node_modules/uuid/**',
-  './node_modules/prop-types/**',
-  './node_modules/potpack/**',
-  './node_modules/webgl-sdf-generator/**',
-  './node_modules/bidi-js/**',
-  './node_modules/use-sync-external-store/**',
-  './node_modules/zustand/**'
+import fs from 'fs';
+import path from 'path';
+import { createRequire } from 'module';
+
+const projectRoot = process.cwd();
+const require = createRequire(import.meta.url);
+
+const { ALLOWED_REACT_MODULES } = await import('./src/utils/react-allowed-modules.js');
+
+const ADDITIONAL_RUNTIME_SPECIFIERS = [
+  'react',
+  'react-dom',
+  'react-dom/client'
 ];
+
+const RUNTIME_DEPENDENCY_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependencies'];
+
+function stripPlaceholderSpecifier(specifier = '') {
+  if (!specifier.includes('<')) {
+    return specifier;
+  }
+
+  const placeholderIndex = specifier.indexOf('<');
+  if (placeholderIndex === -1) {
+    return specifier;
+  }
+
+  const lastSlashBeforePlaceholder = specifier.lastIndexOf('/', placeholderIndex);
+  if (lastSlashBeforePlaceholder === -1) {
+    return specifier.slice(0, placeholderIndex);
+  }
+
+  return specifier.slice(0, lastSlashBeforePlaceholder);
+}
+
+function getBasePackageName(specifier = '') {
+  const cleaned = stripPlaceholderSpecifier(specifier).trim();
+  if (!cleaned || cleaned.startsWith('.') || cleaned.startsWith('/')) {
+    return null;
+  }
+
+  if (cleaned.startsWith('@site-sensei/')) {
+    return null;
+  }
+
+  if (cleaned.startsWith('@')) {
+    const [scope, name] = cleaned.split('/').slice(0, 2);
+    if (!scope || !name) {
+      return null;
+    }
+    return `${scope}/${name}`;
+  }
+
+  return cleaned.split('/')[0];
+}
+
+function getPackageRoot(packageName) {
+  try {
+    const manifestPath = require.resolve(`${packageName}/package.json`, { paths: [projectRoot] });
+    return path.dirname(manifestPath);
+  } catch (error) {
+    return null;
+  }
+}
+
+function readPackageManifest(packageName) {
+  const packageRoot = getPackageRoot(packageName);
+  if (!packageRoot) {
+    return null;
+  }
+
+  try {
+    const manifestPath = path.join(packageRoot, 'package.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    return { manifest, packageRoot };
+  } catch (error) {
+    return null;
+  }
+}
+
+function collectRuntimePackages(basePackages) {
+  const collected = new Set();
+  const visited = new Set();
+
+  function walkPackage(packageName) {
+    if (!packageName || visited.has(packageName)) {
+      return;
+    }
+    visited.add(packageName);
+
+    const result = readPackageManifest(packageName);
+    if (!result) {
+      return;
+    }
+
+    collected.add(packageName);
+
+    RUNTIME_DEPENDENCY_FIELDS.forEach((field) => {
+      const dependencies = result.manifest?.[field];
+      if (!dependencies) {
+        return;
+      }
+      Object.keys(dependencies).forEach((depName) => {
+        if (!depName || depName.startsWith('@types/')) {
+          return;
+        }
+
+        walkPackage(depName);
+      });
+    });
+  }
+
+  basePackages.forEach((packageName) => walkPackage(packageName));
+  return collected;
+}
+
+function buildRuntimeTraceGlobs(specifiers) {
+  const basePackages = new Set();
+  specifiers.forEach((specifier) => {
+    const packageName = getBasePackageName(specifier);
+    if (packageName) {
+      basePackages.add(packageName);
+    }
+  });
+
+  const allPackages = collectRuntimePackages(basePackages);
+  const globs = new Set();
+
+  allPackages.forEach((packageName) => {
+    const packageRoot = getPackageRoot(packageName);
+    if (!packageRoot) {
+      return;
+    }
+
+    const relativeRoot = path.relative(projectRoot, packageRoot).split(path.sep).join('/');
+    if (relativeRoot.startsWith('..')) {
+      return;
+    }
+
+    globs.add(`./${relativeRoot}/**`);
+  });
+
+  return Array.from(globs).sort();
+}
+
+const reactRuntimeTraceGlobs = buildRuntimeTraceGlobs([
+  ...ALLOWED_REACT_MODULES,
+  ...ADDITIONAL_RUNTIME_SPECIFIERS
+]);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
