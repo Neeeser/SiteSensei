@@ -148,6 +148,10 @@ const reactRuntimeTraceGlobs = buildRuntimeTraceGlobs([
   ...ADDITIONAL_RUNTIME_SPECIFIERS
 ]);
 
+if (!reactRuntimeTraceGlobs.includes('./node_modules/**')) {
+  reactRuntimeTraceGlobs.push('./node_modules/**');
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
