@@ -88,7 +88,8 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
   }
 
-  const renderMode = requestedRenderMode === REACT_RENDER_MODE ? REACT_RENDER_MODE : HTML_RENDER_MODE;
+  // React generation is intentionally disabled until the export-first component mode is rebuilt.
+  const renderMode = HTML_RENDER_MODE;
 
   const modelName = getApiKey(model);
   console.log('Using model:', modelName);

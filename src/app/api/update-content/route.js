@@ -72,6 +72,12 @@ export async function POST(request) {
     //console.log('Existing page:', existingPage);
 
     const incomingJavascript = javascript || '';
+    if (renderMode === REACT_RENDER_MODE || isReactSnippet(incomingJavascript)) {
+      return NextResponse.json({
+        error: 'React generation is currently disabled'
+      }, { status: 400 });
+    }
+
     const normalizedRenderMode = renderMode === REACT_RENDER_MODE || isReactSnippet(incomingJavascript)
       ? REACT_RENDER_MODE
       : HTML_RENDER_MODE;

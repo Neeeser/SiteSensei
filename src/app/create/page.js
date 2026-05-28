@@ -308,6 +308,7 @@ export default function CreatePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isFormValid) return;
+    const generationRenderMode = HTML_RENDER_MODE;
     setIsLoading(true);
     setMessage('');
     setIsPageGenerated(false);
@@ -316,7 +317,8 @@ export default function CreatePage() {
     setStreamingJsx('');
     setIsStreaming(false);
     setJsxContent('');
-    setContentRenderMode(renderMode);
+    setRenderMode(generationRenderMode);
+    setContentRenderMode(generationRenderMode);
 
     let enhancedPrompt = null;
     try {
@@ -331,7 +333,7 @@ export default function CreatePage() {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: finalPrompt, model: selectedModel, renderMode }),
+        body: JSON.stringify({ prompt: finalPrompt, model: selectedModel, renderMode: generationRenderMode }),
       });
 
       if (!response.ok) {
@@ -532,7 +534,9 @@ export default function CreatePage() {
     {
       id: REACT_RENDER_MODE,
       title: 'React Components',
-      description: 'Author JSX with React 18, MUI, and shadcn primitives',
+      description: 'Exportable React components for Next.js-style projects',
+      disabled: true,
+      badge: 'Coming soon',
     },
   ];
 
@@ -661,14 +665,16 @@ export default function CreatePage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     {renderModeOptions.map((option) => {
                       const isSelected = renderMode === option.id;
+                      const isDisabled = Boolean(option.disabled);
                       return (
                         <label
                           key={option.id}
-                          className={`relative flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
+                          className={`relative flex flex-col gap-3 rounded-2xl border p-4 transition ${
                             isSelected
                               ? 'border-emerald-500/80 bg-emerald-50/80 shadow-lg ring-2 ring-emerald-500/25 dark:border-emerald-400/70 dark:bg-emerald-950/40'
                               : 'border-slate-200 bg-white/70 shadow-sm dark:border-slate-700 dark:bg-slate-900/70'
-                          }`}
+                          } ${isDisabled ? 'cursor-not-allowed opacity-50 grayscale' : 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md'}`}
+                          title={isDisabled ? 'React component generation is coming soon' : undefined}
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-base font-semibold text-slate-900 dark:text-white">
@@ -683,9 +689,9 @@ export default function CreatePage() {
                           <p className="text-sm text-slate-600 dark:text-slate-300">
                             {option.description}
                           </p>
-                          {option.id === REACT_RENDER_MODE && (
-                            <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
-                              Beta
+                          {option.badge && (
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                              {option.badge}
                             </span>
                           )}
                           <input
@@ -693,7 +699,12 @@ export default function CreatePage() {
                             name="renderMode"
                             value={option.id}
                             checked={renderMode === option.id}
-                            onChange={(e) => setRenderMode(e.target.value)}
+                            disabled={isDisabled}
+                            onChange={() => {
+                              if (!isDisabled) {
+                                setRenderMode(option.id);
+                              }
+                            }}
                             className="sr-only"
                           />
                         </label>
