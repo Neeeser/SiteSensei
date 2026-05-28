@@ -33,6 +33,13 @@ export async function GET(request) {
         .select('html, javascript')
         .eq('id', revisionId)
         .single();
+    } else if (nickname === 'anon') {
+      contentQuery = supabase
+        .from('pages')
+        .select('html, javascript')
+        .eq('is_anonymous', true)
+        .eq('name', pageName)
+        .single();
     } else {
       // Fetch the current page content if no revisionId is specified
       const { data: userData, error: userError } = await supabase

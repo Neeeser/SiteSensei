@@ -196,10 +196,8 @@ const nextConfig = {
       },
     ],
   },
-  experimental: {
-    outputFileTracingIncludes: {
-      '/api/compile-react': reactRuntimeTraceGlobs,
-    },
+  outputFileTracingIncludes: {
+    '/api/compile-react': reactRuntimeTraceGlobs,
   },
   webpack: (config, { isServer }) => {
     if (isServer) {

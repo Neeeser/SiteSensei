@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
 import { supabase } from '@/utils/supabase';
 
+export const dynamic = 'force-dynamic';
+
 type SupabaseUser = {
   id: string;
   auth0_id: string;

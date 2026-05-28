@@ -3,6 +3,8 @@ import { getSession } from '@auth0/nextjs-auth0';
 import { supabase } from '@/utils/supabase';
 import bannedNicknames from '../../../bannedNicknames.json'; // Adjust the path if necessary
 
+export const dynamic = 'force-dynamic';
+
 // Define the allowed fields for non-admin users
 const allowedFields = ['name', 'nickname', 'phone_number', 'birthdate', 'address'];
 

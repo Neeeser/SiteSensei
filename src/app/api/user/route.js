@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/utils/supabase';
 import { getSession } from '@auth0/nextjs-auth0';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req) {
   try {
     const session = await getSession(req);
