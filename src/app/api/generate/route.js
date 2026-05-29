@@ -9,6 +9,7 @@ import {
   REACT_SENTINEL
 } from '@/utils/render-modes';
 import { formatReactModuleAllowlist } from '@/utils/react-allowed-modules.mjs';
+import { getOpenRouterErrorMessage, logOpenRouterError } from '@/utils/openrouter-errors';
 
 // Initialize OpenAI client with custom configuration for OpenRouter
 const openai = new OpenAI({
@@ -37,6 +38,10 @@ function getApiKey(model) {
     default:
       return "meta-llama/llama-3-8b-instruct:free";
   }
+}
+
+function getGenerationErrorMessage(error) {
+  return getOpenRouterErrorMessage(error, 'Generation');
 }
 
 // Function to extract HTML content from the generated text
@@ -250,8 +255,12 @@ Output format:
         }
         controller.close();
       } catch (error) {
-        console.error('Error during streaming:', error);
-        controller.enqueue(encodePayload({ type: 'error', message: 'Error generating content' }));
+        logOpenRouterError('api/generate', error, {
+          selectedModel: model,
+          resolvedModel: modelName,
+          renderMode
+        });
+        controller.enqueue(encodePayload({ type: 'error', message: getGenerationErrorMessage(error) }));
         controller.close();
       }
     }

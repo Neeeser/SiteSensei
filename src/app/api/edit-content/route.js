@@ -1,6 +1,7 @@
 // api/edit-content/route.js
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { getOpenRouterErrorMessage, logOpenRouterError } from '@/utils/openrouter-errors';
 
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -46,13 +47,17 @@ function separateJavaScript(html) {
 }
 
 export async function POST(request) {
+  let selectedModel = null;
+  let resolvedModel = null;
   try {
     const { editPrompt, currentHtml, currentJavascript, model } = await request.json();
+    selectedModel = model;
     if (!editPrompt || !currentHtml || !currentJavascript) {
       return NextResponse.json({ error: 'Edit prompt, current HTML, and current JavaScript are required' }, { status: 400 });
     }
 
     const model_name = getApiKey(model);
+    resolvedModel = model_name;
     console.log('Using model:', model_name);
 
     const completion = await openai.chat.completions.create({
@@ -104,7 +109,10 @@ export async function POST(request) {
       javascript: javascript
     });
   } catch (error) {
-    console.error('Error editing content:', error);
-    return NextResponse.json({ error: 'Error editing content' }, { status: 500 });
+    logOpenRouterError('api/edit-content', error, {
+      selectedModel,
+      resolvedModel
+    });
+    return NextResponse.json({ error: getOpenRouterErrorMessage(error, 'Editing') }, { status: 500 });
   }
 }

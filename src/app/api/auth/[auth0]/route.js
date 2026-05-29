@@ -81,7 +81,7 @@ async function updateUserInSupabase(user) {
   }
 }
 
-export const GET = handleAuth({
+const authHandler = handleAuth({
   async callback(req, res) {
     console.log('Auth0 callback route hit');
     try {
@@ -103,3 +103,8 @@ export const GET = handleAuth({
     }
   },
 });
+
+export async function GET(req, ctx) {
+  const params = await ctx.params;
+  return authHandler(req, { ...ctx, params });
+}

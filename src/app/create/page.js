@@ -325,8 +325,14 @@ export default function CreatePage() {
       let finalPrompt = promptContent;
       
       if (enhancePrompt) {
-        finalPrompt = await streamEnhancedPrompt(promptContent);
-        enhancedPrompt = finalPrompt;
+        try {
+          finalPrompt = await streamEnhancedPrompt(promptContent);
+          enhancedPrompt = finalPrompt;
+        } catch (enhanceError) {
+          console.error('Prompt enhancement failed, continuing with original prompt:', enhanceError);
+          setEnhancedPromptContent('Prompt enhancement is unavailable right now. Generating with your original prompt.');
+          setMessage('Prompt enhancement unavailable; generating with your original prompt.');
+        }
       } else {
         setEnhancedPromptContent('');
       }

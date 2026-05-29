@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { getOpenRouterErrorMessage, logOpenRouterError } from '@/utils/openrouter-errors';
 
 // Initialize the OpenAI client with OpenRouter configuration
 const openai = new OpenAI({
@@ -10,6 +11,14 @@ const openai = new OpenAI({
     "X-Title": "Your App Name", // Replace with your app name
   }
 });
+
+function getEnhancementErrorMessage(error) {
+  if (!process.env.FREE_MODEL) {
+    return 'Prompt enhancement is unavailable because FREE_MODEL is not configured.';
+  }
+
+  return getOpenRouterErrorMessage(error, 'Prompt enhancement');
+}
 
 const BASE_SYSTEM_PROMPT = `
 You transform brief user ideas into rich creative briefs for a single-page web experience rendered by an LLM into HTML, inline CSS, and a trailing <script>.
@@ -91,8 +100,11 @@ export async function POST(request) {
         controller.enqueue(encoder.encode(`${JSON.stringify({ type: 'complete', text: enhancedPrompt })}\n`));
         controller.close();
       } catch (error) {
-        console.error('Error enhancing prompt:', error);
-        controller.enqueue(encodePayload({ type: 'error', message: 'Error enhancing prompt' }));
+        logOpenRouterError('api/enhancePrompt', error, {
+          resolvedModel: process.env.FREE_MODEL,
+          promptLength: prompt.length
+        });
+        controller.enqueue(encodePayload({ type: 'error', message: getEnhancementErrorMessage(error) }));
         controller.close();
       }
     }
