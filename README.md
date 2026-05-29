@@ -4,7 +4,7 @@ Site Sensei is a platform that allows users to instantly generate fully interact
 
 ## Try it out
 
-Check out Site Sensei live: [www.site-sensei.vercel.app](https://www.site-sensei.vercel.app)
+Check out Site Sensei live: https://site-sensei.vercel.app/
 
 ## Features
 
